@@ -3,9 +3,11 @@ layout: post
 title: "Test Page"
 date: 2024-10-23
 ---
+
 Hello my name bob
 This test page is only for demonstration purposes. 
 I am teaching people how to use this software. 
 I to am also a beginner in this
 
-Below are some tables cause why not
+Below is an image
+![image](assets/img/bruh-meme.jpg)
