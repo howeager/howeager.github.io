@@ -134,7 +134,7 @@ navbar-col: "#202020"         # Navbar background color
 navbar-text-col: "#FFFFFF"    # Navbar text color
 navbar-border-col: "#333333"  # Navbar border color
 footer-col: "#202020"         # Footer background color
-footer-text-col: "#AAAAAA"    # Footer text color
+footer-text-col: "##FAFDFF"    # Footer text color
 footer-link-col: "#4C8AFF"    # Footer link color
 footer-hover-col: "#1E90FF"   # Footer link hover color
 
