@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roberto Saldana - Terminal</title>
+
+  <style>
+    :root{
+      --bg:#300a24;
+      --chrome:#2d2d2d;
+      --fg:#f0f0f0;
+      --muted:#bfbfbf;
+      --accent-blue:#729fcf;
+      --accent-green:#8ae234;
+      --accent-red:#ff6b6b;
+      --shadow:0 20px 60px rgba(0,0,0,.5);
+      --radius:12px;
+      --pad:clamp(12px, 2.2vw, 20px);
+      --mono: 'Ubuntu Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --line-height: 1.65;
+      --font-size: clamp(13px, 1.9vw, 16px);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font-family:var(--mono);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:clamp(8px,3vw,24px);
+    }
+
+    .terminal{
+      width:100%;
+      max-width:min(1000px, 100%);
+      background:var(--bg);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.06);
+      display:flex;
+      flex-direction:column;
+      min-height:min(86vh, 900px);
+    }
+
+    .terminal-header{
+      background:var(--chrome);
+      padding:8px 12px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    .window-buttons{ display:flex; gap:8px; align-items:center; }
+    .btn{ width:12px; height:12px; border-radius:50%; }
+    .btn.close{ background:#ff5f56 }
+    .btn.min{ background:#ffbd2e }
+    .btn.max{ background:#27c93f }
+    .title{ color:#ccc; font-size:12px; letter-spacing:.2px; user-select:none; }
+
+    .terminal-body{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      padding:var(--pad);
+      font-size:var(--font-size);
+      line-height:var(--line-height);
+      overflow:auto;
+      scroll-behavior:smooth;
+    }
+
+    .line{ margin:.35rem 0; word-break:break-word; }
+    .user{ color:var(--accent-green) }
+    .path{ color:var(--accent-blue) }
+    .command{ color:var(--fg) }
+    .output{ color:var(--fg); margin:.35rem 0; }
+    .error{ color:var(--accent-red) }
+    .success{ color:var(--accent-green) }
+    a{ color:var(--accent-blue); text-decoration:none; }
+    a:hover{ text-decoration:underline; color:var(--accent-green) }
+
+    .prompt{
+      display:flex; align-items:center; gap:.35rem; margin-top:auto;
+      position:sticky; bottom:0; background:linear-gradient(180deg, rgba(48,10,36,0) 0%, rgba(48,10,36,.95) 30%);
+      padding-top:var(--pad);
+    }
+    .prompt .ps1{ white-space:nowrap; flex:0 0 auto }
+    .prompt input{
+      flex:1;
+      background:transparent;
+      border:none;
+      outline:none;
+      color:var(--fg);
+      font:inherit;
+      caret-color:var(--fg);
+      padding:.35rem .4rem;
+      border-bottom:1px solid rgba(255,255,255,.14);
+    }
+    .prompt input::placeholder{ color:rgba(255,255,255,.45) }
+
+    .toast{
+      position:fixed; right:16px; bottom:16px; width:min(92vw, 420px);
+      background:var(--chrome); color:var(--fg);
+      border-radius:12px; box-shadow:var(--shadow);
+      display:flex; gap:12px; align-items:flex-start;
+      padding:16px 18px; opacity:0; transform:translateY(14px);
+      transition:opacity .28s ease, transform .28s ease;
+      z-index:1000; border:1px solid rgba(255,255,255,.08);
+      font-size:clamp(14px, 2.2vw, 18px);
+    }
+    .toast.show{ opacity:1; transform:translateY(0) }
+    .toast .icon{ width:40px; height:40px; border-radius:8px; background:var(--accent-blue);
+      display:grid; place-items:center; font-size:22px; flex:0 0 auto; }
+    .toast .title{ font-weight:700; font-size:1em; margin-bottom:2px }
+    .toast .msg{ color:#ccc; font-size:.95em }
+    .toast .x{ margin-left:auto; cursor:pointer; color:#aaa; font-size:1.1em }
+    .toast .x:hover{ color:var(--fg) }
+
+    .viewer{
+      position:fixed; inset:clamp(8px,3vw,18px);
+      border-radius:14px; overflow:hidden; background:#1f1f1f;
+      box-shadow:0 30px 80px rgba(0,0,0,.7);
+      display:none; flex-direction:column; z-index:900;
+      border:1px solid rgba(255,255,255,.08);
+      max-width:1200px; margin:auto;
+    }
+    .viewer.show{ display:flex }
+    .viewer-header{
+      background:#232323; padding:8px 12px; display:flex; align-items:center; gap:10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .viewer-title{ color:#e6e6e6; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    .viewer-actions{ margin-left:auto; display:flex; gap:6px }
+    .chip{ background:#333; color:#cfd; padding:4px 8px; border-radius:999px; font-size:12px }
+    .viewer-actions button{
+      background:#333; color:#eee; border:1px solid #444; border-radius:8px; padding:6px 10px; cursor:pointer; font-family:var(--mono);
+    }
+    .viewer-actions button:hover{ background:#3b3b3b }
+    .viewer-body{ flex:1; display:flex; min-height:0 }
+    .viewer-sidebar{
+      width:220px; background:#1a1a1a; border-right:1px solid rgba(255,255,255,.08);
+      padding:10px; overflow:auto;
+    }
+    .viewer-content{
+      flex:1; background:#121212; padding:14px; overflow:auto;
+    }
+    .viewer-content iframe{
+      width:100%; height:100%; border:0; background:#fff; border-radius:8px;
+    }
+    .viewer-content article{ color:#eaeaea; max-width:960px; margin:0 auto; line-height:1.75 }
+    .viewer-content h1,.viewer-content h2{ margin:.2em 0 .5em }
+    .viewer-content pre{ background:#0e0e0e; padding:12px; border-radius:10px; overflow:auto; border:1px solid #222 }
+    .viewer-content code{ font-family:var(--mono) }
+    .viewer-file{ display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer; color:#ddd }
+    .viewer-file:hover{ background:#262626 }
+    .viewer-file .dot{ width:10px; height:10px; border-radius:50%; background:#729fcf }
+    .viewer-file small{ color:#aaa }
+
+    @media (max-width: 840px){
+      .viewer-sidebar{ display:none }
+    }
+
+    @media (max-width: 640px){
+      .terminal{ min-height:90vh }
+      .terminal-header{ padding:10px 14px }
+      .btn{ width:14px; height:14px }
+      .title{ font-size:13px }
+      .prompt input{ font-size:16px }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .terminal-body{ scroll-behavior:auto }
+      .toast{ transition:none }
+    }
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <div class="icon" aria-hidden="true">💡</div>
+    <div>
+      <div class="title">Terminal Hint</div>
+      <div class="msg">Type <kbd>ls</kbd> to see commands and posts. Use ↑/↓ for history.</div>
+    </div>
+    <button class="x" id="toastClose" aria-label="Close notification">✕</button>
+  </div>
+
+  <section class="viewer" id="viewer" aria-modal="true" role="dialog" aria-label="File viewer">
+    <header class="viewer-header">
+      <div class="window-buttons" aria-hidden="true">
+        <span class="btn close"></span>
+        <span class="btn min"></span>
+        <span class="btn max"></span>
+      </div>
+      <span class="viewer-title" id="viewerTitle">Opening…</span>
+      <span class="chip" id="viewerType">text/html</span>
+      <div class="viewer-actions">
+        <button id="btnPop">Pop out</button>
+        <button id="btnClose">Close</button>
+      </div>
+    </header>
+    <div class="viewer-body">
+      <aside class="viewer-sidebar" id="viewerSidebar"></aside>
+      <div class="viewer-content" id="viewerContent"></div>
+    </div>
+  </section>
+
+  <main class="terminal" role="application" aria-label="Terminal portfolio">
+    <header class="terminal-header" aria-hidden="true">
+      <div class="window-buttons">
+        <span class="btn close"></span>
+        <span class="btn min"></span>
+        <span class="btn max"></span>
+      </div>
+      <span class="title">roberto@cal-poly-pomona: ~</span>
+    </header>
+
+    <section class="terminal-body" id="terminal" role="log" aria-live="polite">
+      <div class="line"><span class="user">roberto@cal-poly-pomona</span>:<span class="path">~</span>$ <span class="command">cat welcome.txt</span></div>
+      <div class="output" id="output" aria-label="Command output"></div>
+
+      <div class="prompt" id="prompt">
+        <span class="ps1"><span class="user">roberto@cal-poly-pomona</span>:<span class="path">~</span>$</span>
+        <input id="input" name="command" type="text" inputmode="text" autocomplete="off" spellcheck="false"
+               aria-label="Command line" placeholder="Type a command and press Enter…" />
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const banner = [
+      "╔══════════════════════════════════════════════════════════╗",
+      "║              ROBERTO SALDANA - PORTFOLIO                 ║",
+      "╚══════════════════════════════════════════════════════════╝",
+      "",
+      "Welcome to my terminal-based portfolio!",
+      "",
+      "About Me:",
+      "  Name: Roberto Saldana",
+      "  Degree: B.S. in Computer Information Systems (CIS)",
+      "  School: Cal Poly Pomona - 4th Year",
+      "  CCDC Competitor | Treasurer, Security Operations Club",
+      "  Hobbies: Building things with my own two hands; editing goofy videos when time allows",
+      "",
+      "═══════════════════════════════════════════════════════════",
+      ""
+    ];
+
+    const posts = [
+      { title: "My Journey into Computer Science", url: "blog-1.html", date: "2024-10-15" },
+      { title: "Building My First Web Application", url: "blog-2.html", date: "2024-09-22" },
+      { title: "Internship Experience at Tech Corp", url: "blog-3.html", date: "2024-08-10" }
+    ];
+
+    const commands = {
+      ls(){
+        let html = '<div class="success" style="font-weight:700">Available commands and recent blog posts:</div><br>';
+        html += '<div style="margin-left: 16px">';
+        html += '<div><span class="success">Commands:</span></div>';
+        html += '<div>  help - Show available commands</div>';
+        html += '<div>  about - Learn more about me</div>';
+        html += '<div>  contact - Get my contact information</div>';
+        html += '<div>  open &lt;#|all&gt; - Open a blog post</div>';
+        html += '<div>  clear - Clear the terminal</div>';
+        html += '<br><div><span class="success">Recent Blog Posts:</span></div>';
+        posts.forEach((p,i)=>{
+          html += `<div>  <a href="${p.url}" class="blog-post" data-index="${i}">${i+1}. ${p.title}</a> <span style="color:#888">(${p.date})</span></div>`
+        });
+        html += '</div>';
+        return html;
+      },
+      help(){
+        return `<div class="success">Available commands:</div>
+          <div style="margin-left:16px">
+            <div>ls - List commands and posts</div>
+            <div>about - Learn more about me</div>
+            <div>contact - Get my contact info</div>
+            <div>open &lt;#|all&gt; - Open a post in viewer</div>
+            <div>clear - Clear the terminal</div>
+          </div>`;
+      },
+      about(){
+        return `<div>
+          <div><span class="success">About Roberto Saldana</span></div><br>
+          <div>I'm a 4th year CIS student at Cal Poly Pomona, a CCDC competitor,</div>
+          <div>and the Treasurer of my university's Security Operations Club.</div>
+          <br>
+          <div>I love building things with my own two hands and editing goofy videos</div>
+          <div>whenever I can carve out the time.</div>
+          <br>
+          <div>Current Focus:</div>
+          <div style="margin-left:16px">
+            <div>- Full-stack web development</div>
+            <div>- Security operations & blue-team tooling</div>
+            <div>- Competitive readiness (CCDC)</div>
+          </div>
+        </div>`;
+      },
+      contact(){
+        return `<div>
+          <div><span class="success">Contact Information</span></div><br>
+          <div>Email: <a href="mailto:roberto@example.com">roberto@example.com</a></div>
+          <div>GitHub: <a href="https://github.com/robertosaldana" target="_blank" rel="noopener">github.com/robertosaldana</a></div>
+          <div>LinkedIn: <a href="https://linkedin.com/in/robertosaldana" target="_blank" rel="noopener">linkedin.com/in/robertosaldana</a></div>
+        </div>`;
+      },
+      clear(){
+        output.innerHTML = '';
+        return '';
+      },
+      open(arg){
+        if(!arg){ return `<span class="error">Usage:</span> open &lt;number|all&gt;` }
+        if(arg === 'all'){
+          openViewer(posts[0].url, posts[0].title);
+          return `<span class="success">Opening all posts in sequence… (showing #1)</span>`;
+        }
+        const idx = Number(arg);
+        if(Number.isNaN(idx) || idx < 1 || idx > posts.length){
+          return `<span class="error">Invalid index.</span> Type <span class="success">ls</span> to list posts.`;
+        }
+        openViewer(posts[idx-1].url, posts[idx-1].title);
+        return `<span class="success">Opening: ${posts[idx-1].title}</span>`;
+      }
+    };
+
+    const term = document.getElementById('terminal');
+    const output = document.getElementById('output');
+    const prompt = document.getElementById('prompt');
+    const input = document.getElementById('input');
+
+    let line=0, col=0;
+    function typeWriter(){
+      if(line < banner.length){
+        const current = banner[line];
+        if(col < current.length){
+          output.innerHTML += current.charAt(col);
+          col++;
+          setTimeout(typeWriter, 8);
+        }else{
+          output.innerHTML += '<br>';
+          line++; col=0;
+          setTimeout(typeWriter, 24);
+        }
+      }else{
+        input.focus();
+        showToast();
+      }
+    }
+
+    const history = [];
+    let hIndex = -1;
+
+    function printPrompted(commandText, resultHTML){
+      const cmdLine = document.createElement('div');
+      cmdLine.className = 'line';
+      cmdLine.innerHTML = `<span class="user">roberto@cal-poly-pomona</span>:<span class="path">~</span>$ <span class="command">${commandText}</span>`;
+      term.insertBefore(cmdLine, prompt);
+      if(resultHTML){
+        const res = document.createElement('div');
+        res.className = 'output';
+        res.innerHTML = resultHTML;
+        term.insertBefore(res, prompt);
+      }
+      requestAnimationFrame(()=>{
+        term.scrollTop = term.scrollHeight + 200;
+      });
+    }
+
+    function run(raw){
+      const txt = raw.trim();
+      if(!txt) return;
+      const [cmd, ...args] = txt.split(/\s+/);
+      const arg = args.join(' ').trim();
+      if(typeof commands[cmd] === 'function'){
+        const out = commands[cmd](arg);
+        if(cmd !== 'clear') printPrompted(raw, out);
+      }else{
+        printPrompted(raw, `<span class="error">bash: ${cmd}: command not found</span><br>Type 'help' to see available commands.`);
+      }
+    }
+
+    input.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        const v = input.value;
+        history.unshift(v);
+        hIndex = -1;
+        run(v);
+        input.value = '';
+      }else if(e.key === 'ArrowUp'){
+        e.preventDefault();
+        if(history.length){
+          hIndex = Math.min(hIndex + 1, history.length - 1);
+          input.value = history[hIndex] ?? '';
+          queueMicrotask(()=> input.setSelectionRange(input.value.length, input.value.length));
+        }
+      }else if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        if(history.length){
+          hIndex = Math.max(hIndex - 1, -1);
+          input.value = hIndex === -1 ? '' : (history[hIndex] ?? '');
+          queueMicrotask(()=> input.setSelectionRange(input.value.length, input.value.length));
+        }
+      }
+    });
+
+    // open links in the viewer
+    document.addEventListener('click', (e)=>{
+      const a = e.target.closest('a.blog-post');
+      if(a){
+        e.preventDefault();
+        const idx = Number(a.dataset.index ?? 0);
+        const p = posts[idx];
+        openViewer(p.url, p.title);
+      }
+    });
+
+    const viewer = document.getElementById('viewer');
+    const viewerTitle = document.getElementById('viewerTitle');
+    const viewerType = document.getElementById('viewerType');
+    const viewerSidebar = document.getElementById('viewerSidebar');
+    const viewerContent = document.getElementById('viewerContent');
+    const btnClose = document.getElementById('btnClose');
+    const btnPop = document.getElementById('btnPop');
+
+    function openViewer(url, title){
+      viewerTitle.textContent = title || 'Untitled';
+      viewerType.textContent = 'text/html';
+      viewerSidebar.innerHTML = '';
+      viewerContent.innerHTML = '';
+
+      const files = [
+        { name: 'README.md', type:'text' },
+        { name: 'media/image.jpg', type:'image' },
+        { name: 'media/video.mp4', type:'video' },
+        { name: 'src/snippet.js', type:'code' }
+      ];
+      files.forEach(f=>{
+        const row = document.createElement('div');
+        row.className = 'viewer-file';
+        row.innerHTML = `<span class="dot"></span> <span>${f.name}</span> <small>(${f.type})</small>`;
+        row.addEventListener('click', ()=> showDemo(f.type));
+        viewerSidebar.appendChild(row);
+      });
+
+      const iframe = document.createElement('iframe');
+      iframe.loading = 'eager';
+      iframe.src = url;
+      viewerContent.appendChild(iframe);
+
+      btnPop.onclick = () => window.open(url, '_blank');
+      btnClose.onclick = () => viewer.classList.remove('show');
+      viewer.classList.add('show');
+    }
+
+    function showDemo(kind){
+      viewerContent.innerHTML = '';
+      const article = document.createElement('article');
+      if(kind==='text'){
+        article.innerHTML = `<h1>Notes</h1><p>This file supports <strong>rich text</strong>, images, videos, and code blocks. Write freely, embed assets, and keep hacking!</p>`;
+      }else if(kind==='image'){
+        article.innerHTML = `<h2>Image Preview</h2><img src="https://picsum.photos/1200/600" alt="Demo" style="max-width:100%;border-radius:10px" />`;
+      }else if(kind==='video'){
+        article.innerHTML = `<h2>Video Preview</h2><video controls style="max-width:100%;border-radius:10px"><source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4"></video>`;
+      }else{
+        article.innerHTML = `<h2>Code Snippet</h2><pre><code>// JavaScript demo
+function greet(name){
+  return \`Hello, \${name}! From a code block ✅\`;
+}
+console.log(greet('World'));</code></pre>`;
+      }
+      viewerContent.appendChild(article);
+    }
+
+    input.addEventListener('focus', ()=>{
+      setTimeout(()=>{
+        prompt.scrollIntoView({block:'end', behavior:'smooth'});
+      }, 150);
+    });
+
+    const toast = document.getElementById('toast');
+    const toastClose = document.getElementById('toastClose');
+    function showToast(){
+      toast.classList.add('show');
+      setTimeout(()=> toast.classList.remove('show'), 8000);
+    }
+    toastClose.addEventListener('click', ()=> toast.classList.remove('show'));
+
+    setTimeout(typeWriter, 400);
+  </script>
+</body>
+</html>
