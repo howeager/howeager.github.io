@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404 - File Not Found</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#000;
+      --fg:#33ff66;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0; background:var(--bg); color:var(--fg);
+      font-family:'VT323', ui-monospace, "DejaVu Sans Mono", "Ubuntu Mono", Consolas, "Courier New", monospace;
+      display:flex; align-items:center; justify-content:center; overflow:hidden;
+    }
+    .crt{
+      position:fixed; inset:0; pointer-events:none;
+      background:repeating-linear-gradient(to bottom, rgba(0,0,0,.12) 0, rgba(0,0,0,.12) 2px, rgba(0,0,0,0) 3px, rgba(0,0,0,0) 4px);
+      mix-blend-mode: overlay; animation:flicker 3s infinite steps(100);
+    }
+    @keyframes flicker{ 0%{opacity:.15} 50%{opacity:.25} 100%{opacity:.15} }
+
+    .wrap{
+      width:min(900px, 96vw); padding:24px; border:2px solid var(--fg); border-radius:8px;
+      background:radial-gradient(circle at 50% 50%, rgba(51,255,102,.08), rgba(0,0,0,.8) 70%);
+      box-shadow:0 0 40px rgba(51,255,102,.1), inset 0 0 60px rgba(0,0,0,.8);
+    }
+    .header{ display:flex; align-items:center; gap:12px; margin-bottom:10px; border-bottom:1px solid rgba(51,255,102,.35); padding-bottom:8px; }
+    .led{ width:10px; height:10px; border-radius:50%; background:#2e6f45; box-shadow:0 0 10px rgba(51,255,102,.3) inset; }
+    h1{ font-size:clamp(34px, 10vw, 64px); margin:0 0 6px; letter-spacing:2px }
+    .sub{ color:#a8ffbf; opacity:.85; margin-bottom:16px; font-size:clamp(16px, 3.4vw, 24px) }
+    .screen{ font-size:clamp(16px, 3.8vw, 22px); line-height:1.6; }
+    .prompt{ color:#a8ffbf }
+    .path{ color:#7aff9b }
+    .cursor{ display:inline-block; width:10px; height:1.1em; vertical-align:bottom; background:var(--fg); margin-left:6px; animation:blink 1s steps(1) infinite; }
+    @keyframes blink{ 50%{opacity:0} }
+    .links{ margin-top:18px }
+    a{ color:var(--fg); text-decoration:none; border-bottom:1px dotted rgba(51,255,102,.6) }
+    a:hover{ border-bottom-color:transparent }
+    .box{ border:1px dashed rgba(51,255,102,.5); padding:10px 12px; margin:12px 0; background:rgba(10,44,18,.3); border-radius:6px; }
+    @media (max-width: 520px){ .wrap{ padding:16px } }
+  </style>
+</head>
+<body>
+  <div class="wrap" role="document" aria-label="404 Not Found">
+    <div class="header">
+      <div class="led" aria-hidden="true"></div>
+      <div>GNU/Linux web console</div>
+    </div>
+    <h1>404: FILE NOT FOUND</h1>
+    <div class="sub">The requested resource could not be located on this server.</div>
+
+    <div class="screen" id="screen" aria-live="polite">
+      <div><span class="prompt">user@site</span>:<span class="path">~/</span>$ <span>curl -I <em>requested/page</em></span></div>
+      <div class="box">
+        HTTP/1.1 404 Not Found<br>
+        Server: github-pages<br>
+        Content-Type: text/html; charset=UTF-8<br>
+        X-Error: path not found
+      </div>
+
+      <div><span class="prompt">user@site</span>:<span class="path">~/</span>$ <span>help</span></div>
+      <div class="box">
+        try: <strong>home</strong> – go to homepage<br>
+        try: <strong>ls</strong> – list available pages<br>
+        try: <strong>contact</strong> – send a message
+      </div>
+
+      <div><span class="prompt">user@site</span>:<span class="path">~/</span>$ <span id="type"></span><span class="cursor" aria-hidden="true"></span></div>
+    </div>
+
+    <div class="links">
+      <a href="index.html">↩ home</a> ·
+      <a href="blog-1.html">blog 1</a> ·
+      <a href="blog-2.html">blog 2</a> ·
+      <a href="blog-3.html">blog 3</a>
+    </div>
+  </div>
+
+  <div class="crt" aria-hidden="true"></div>
+
+  <script>
+    const msg = "echo Sorry, that path doesn't exist.";
+    const out = document.getElementById('type');
+    let i = 0;
+    (function tick(){
+      if(i <= msg.length){
+        out.textContent = msg.slice(0, i++);
+        setTimeout(tick, 35);
+      }
+    })();
+  </script>
+</body>
+</html>
