@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Building a Production-Grade Minecraft Server Nobody Asked For – Roberto Saldana</title>
+  <link rel="stylesheet" href="../assets/css/blog.css">
+</head>
+<body>
+
+<header>
+  <a href="../index.html" class="pill">← Back to Terminal</a>
+</header>
+
+<main>
+  <div class="post-header">
+    <h1>Building a Production-Grade Minecraft Server Nobody Asked For</h1>
+    <div class="meta">
+      <span>2026-05-21</span>
+      <span>·</span>
+      <em>Roberto Saldana</em>
+      <span>·</span>
+      <span>25 min read</span>
+      <span class="tag">DevSecOps</span>
+      <span class="tag">Homelab</span>
+      <span class="tag">Infrastructure</span>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <h3>Table of Contents</h3>
+    <ol>
+      <li><a href="#intro">Introduction</a></li>
+      <li><a href="#what">What Are We Working With</a></li>
+      <li><a href="#cheap">Let's Be Cheap About It</a></li>
+      <li><a href="#methodology">DevSecOps Methodology</a></li>
+      <li><a href="#plan">Plan Phase — Architecture Design</a></li>
+      <li><a href="#develop">Develop Phase — Infrastructure as Code</a></li>
+      <li><a href="#build">Build Phase — Config & Security Validation</a></li>
+      <li><a href="#core">Building the Core Cluster</a></li>
+      <li><a href="#deploy">Deploy Phase — Running Minecraft</a></li>
+      <li><a href="#test">Test Phase — Failure & Resilience Testing</a></li>
+      <li><a href="#operate">Operate Phase — Backups & Reliability</a></li>
+      <li><a href="#monitor">Monitor Phase — Observability & Logging</a></li>
+      <li><a href="#security">Security Considerations</a></li>
+      <li><a href="#results">Results — Did I Win the Bet?</a></li>
+      <li><a href="#limitations">Limitations & Reality Check</a></li>
+      <li><a href="#future">Future Improvements</a></li>
+      <li><a href="#conclusion">Conclusion</a></li>
+    </ol>
+  </nav>
+
+  <article>
+
+    <!-- ── 01 Introduction ── -->
+    <h2 id="intro"><span class="num">01 —</span> Introduction</h2>
+
+    <p>
+      Minecraft, my beloved, reigns supreme. It's so easy to just boot up a server, share your IP with your friends,
+      and play for hours — until you can't. Or until one of your friends griefs the entire world and it suddenly
+      turns into an unplanned anarchy server and everything crashes and burns. Amazing.
+    </p>
+
+    <p>
+      Over the years, me and my friends have drifted apart, moving into our own careers and lives. But the one
+      thing that always manages to bring us back together? Minecraft.
+    </p>
+
+    <p>
+      One day, I got a message from a friend who lives halfway across the world — stationed in Qatar. He dropped
+      a link in the group chat and said:
+    </p>
+
+    <div class="callout info">
+      <strong>The Message</strong>
+      "We should just buy a premade server. It's cheap." — followed by a Hostinger ad promising a fast, reliable,
+      low-cost Minecraft server with almost no setup required.
+    </div>
+
+    <p>
+      I took a look. Honestly, from a consumer standpoint it made sense. Simple. Convenient. It "just worked."
+      But that's exactly what bothered me.
+    </p>
+
+    <p>
+      I went into the field of information technology. I knew the ins and outs. I knew how to do this myself.
+      And I took mild offense to the fact that he never asked me first. So instead of just saying no,
+      I proposed a bet: if I could build a server setup that was on par — or better — than what Hostinger
+      was advertising, he would have to pay me the subscription fee he was willing to spend. He agreed.
+    </p>
+
+    <p>
+      What followed was a deep dive into Proxmox, LXC containers, Tailscale, Velocity proxies, HashiCorp Vault,
+      Prometheus, Grafana, Loki, and Gitea — all mapped against the DoD DevSecOps Tools &amp; Activities framework.
+      For a Minecraft server. You're welcome.
+    </p>
+
+    <div class="divider"></div>
+
+    <!-- ── 02 What Are We Working With ── -->
+    <h2 id="what"><span class="num">02 —</span> What Are We Working With</h2>
+
+    <p>
+      Before diving into the build, here's the full stack. Every component was chosen deliberately — either
+      for technical merit, cost, or the fact that it maps directly to a real enterprise DevSecOps pattern.
+    </p>
+
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="lbl">Hypervisor</div>
+        <div class="nm">Proxmox VE 9.1</div>
+        <div class="ds">Bare metal hypervisor running all LXC containers</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Networking</div>
+        <div class="nm">Tailscale</div>
+        <div class="ds">Zero-trust mesh VPN with ACL-based access control</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Proxy</div>
+        <div class="nm">Velocity 3.5</div>
+        <div class="ds">Minecraft reverse proxy with load balancing</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Game Server</div>
+        <div class="nm">PaperMC 26.1.2</div>
+        <div class="ds">High-performance Minecraft server — two nodes</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Source Control + CI/CD</div>
+        <div class="nm">Gitea + Actions</div>
+        <div class="ds">Self-hosted Git with automated validation pipelines</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Secrets Management</div>
+        <div class="nm">HashiCorp Vault</div>
+        <div class="ds">Centralized secrets store — no hardcoded credentials</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Metrics</div>
+        <div class="nm">Prometheus</div>
+        <div class="ds">Scrapes node exporter from every LXC every 15s</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Observability</div>
+        <div class="nm">Grafana + Loki</div>
+        <div class="ds">Dashboards, log aggregation, and alerting</div>
+      </div>
+    </div>
+
+    <div class="arch">
+<span class="g">Your Device (Anywhere in the World)</span>
+        │
+    <span class="g">Tailscale Mesh VPN</span> ── ACL enforced
+        │
+<span class="b">Proxmox Host</span> (192.168.4.41 / Tailscale: 100.107.12.47)
+  └── vmbr1 Internal Bridge (10.10.10.0/24)
+        ├── <span class="g">10.10.10.10</span>  Velocity Proxy       [LXC 101]
+        ├── <span class="g">10.10.10.20</span>  minecraft-1          [LXC 102]
+        ├── <span class="g">10.10.10.21</span>  minecraft-2          [LXC 106]
+        ├── <span class="b">10.10.10.30</span>  Gitea + CI/CD        [LXC 103]
+        ├── <span class="b">10.10.10.40</span>  HashiCorp Vault      [LXC 104]
+        └── <span class="r">10.10.10.50</span>  Prometheus/Grafana   [LXC 105]
+
+<span class="g">YOU</span>      → Tailscale → All ports
+<span class="r">FRIENDS</span>  → Tailscale → Port 25565 only
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 03 Cheap ── -->
+    <h2 id="cheap"><span class="num">03 —</span> Let's Be Cheap About It</h2>
+
+    <p>
+      The hardware powering all of this is an <strong>HP EliteDesk 705 G3 Mini</strong> — a small form factor
+      business PC I grabbed off eBay for <strong>$70</strong>. Seventy dollars. Less than a year of Hostinger.
+    </p>
+
+    <div class="callout success">
+      <strong>Hardware Specs</strong>
+      HP EliteDesk 705 G3 Mini · AMD APU · 4 cores · 8GB DDR4 · 210GB storage · ~10–15W idle power draw
+    </div>
+
+    <p>
+      The RAM situation deserves its own paragraph. I started with a single 8GB DDR4 stick after discovering
+      the EliteDesk 705 G3 is deeply opinionated about memory compatibility — a mismatched 16GB stick simply
+      refused to boot. After some quality time in the BIOS, I ran solo on 8GB while a matching stick was inbound.
+    </p>
+
+    <p>
+      The "expensive" part of this whole project? My friends — after losing the bet — had to chip in and buy me
+      a <strong>matching 8GB DDR4-2400 SO-DIMM</strong>. Retail price: about $15 on eBay.
+      I cannot stress enough how much satisfaction came from that transaction.
+    </p>
+
+    <p>
+      Total hardware cost including RAM: roughly <strong>$85</strong>. The Hostinger plan they were about to buy
+      costs more than that annually. We don't talk about ROI here. We talk about principles.
+    </p>
+
+    <div class="divider"></div>
+
+    <!-- ── 04 Methodology ── -->
+    <h2 id="methodology"><span class="num">04 —</span> DevSecOps Methodology</h2>
+
+    <p>
+      Before touching a single config file, I mapped this entire project to the
+      <strong>DoD DevSecOps Fundamentals Guidebook: Tools &amp; Activities (v2.0, March 2021)</strong>.
+      This is an unclassified, publicly available document defining eight phases of a DevSecOps software
+      lifecycle and the security activities that must occur at each phase.
+    </p>
+
+    <p>
+      Most homelab writeups stop at "I spun up a server." This one maps every component to a phase of that
+      framework — because that's how real enterprise DevSecOps works.
+    </p>
+
+    <div class="callout info">
+      <strong>DoD Framework Reference</strong>
+      Eight phases: Plan → Develop → Build → Test → Release &amp; Deliver → Deploy → Operate → Monitor.
+      Security is woven through every phase, not bolted on at the end.
+    </div>
+
+    <p>Key principles carried into this build directly from the framework:</p>
+
+    <ul>
+      <li><strong>Zero Trust Architecture</strong> — perimeter security alone is not sufficient</li>
+      <li><strong>SIEM/logging integration</strong> at every phase, not as an afterthought</li>
+      <li><strong>Runtime defense</strong> and vulnerability management as baseline requirements</li>
+      <li><strong>Infrastructure as Code</strong> for reproducible, auditable deployments</li>
+      <li><strong>Secrets management</strong> — no hardcoded credentials, ever</li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <!-- ── 05 Plan ── -->
+    <h2 id="plan"><span class="num">05 —</span> Plan Phase — Architecture Design</h2>
+
+    <p>
+      The DoD Plan phase covers system design, threat modeling, and configuration management planning.
+      That meant deciding on network topology before writing a single line of config.
+    </p>
+
+    <h3>Core Design Decisions</h3>
+
+    <div class="phase">
+      <div class="plbl">Decision 01</div>
+      <p>
+        <strong>LXC containers over VMs.</strong> Proxmox supports both full VMs and LXC containers.
+        LXCs share the host kernel, making them significantly lighter and faster to clone.
+        Each LXC is cloned from a base Debian 12 template — matching the DoD concept of
+        "immutable infrastructure from master images."
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Decision 02</div>
+      <p>
+        <strong>Isolated internal network.</strong> All LXCs live on a private bridge (<code>vmbr1</code>,
+        <code>10.10.10.0/24</code>) completely separate from the home LAN. The Proxmox host acts as a
+        NAT gateway. No LXC is directly reachable from the internet or local network.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Decision 03</div>
+      <p>
+        <strong>Tailscale for zero-trust access.</strong> Rather than opening ports on the home router,
+        Tailscale creates a WireGuard-based mesh VPN. NAT traversal means zero port forwarding required.
+        ACLs enforce the privilege split: I get full access, friends get port 25565 only.
+      </p>
+    </div>
+
+    <h3>Threat Model</h3>
+    <p>Even for a Minecraft server, threat modeling matters. Attack surfaces considered:</p>
+    <ul>
+      <li>Unauthenticated access to Proxmox management interface — <em>mitigated: Tailscale only</em></li>
+      <li>Credential exposure via hardcoded secrets — <em>mitigated: HashiCorp Vault</em></li>
+      <li>Lateral movement between LXCs — <em>mitigated: isolated bridge network</em></li>
+      <li>Privilege escalation via service accounts — <em>mitigated: unprivileged LXCs, non-root users</em></li>
+      <li>Friend access to admin interfaces — <em>mitigated: Tailscale ACL grants</em></li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <!-- ── 06 Develop ── -->
+    <h2 id="develop"><span class="num">06 —</span> Develop Phase — Infrastructure as Code</h2>
+
+    <p>
+      The DoD Develop phase requires all infrastructure configuration to live in version control.
+      Every config file — Velocity proxy settings, PaperMC server properties, Prometheus scrape configs —
+      is stored in a self-hosted <strong>Gitea</strong> repository called <code>minecraft-infra</code>.
+    </p>
+
+    <pre><code>minecraft-infra/
+├── velocity/
+│   └── velocity.toml          # Proxy configuration
+├── minecraft/
+│   ├── server.properties      # Game server settings
+│   └── paper-global.yml       # PaperMC security config
+├── ansible/
+│   └── deploy.yml             # Provisioning playbook
+└── .gitea/workflows/
+    └── validate.yml           # CI/CD pipeline</code></pre>
+
+    <div class="callout info">
+      <strong>Gitea Runner</strong>
+      A self-hosted Gitea Actions runner (gitea-runner v1.0.3) executes the pipeline on every push,
+      running on the Gitea LXC itself labeled <code>debian-latest</code>.
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 07 Build ── -->
+    <h2 id="build"><span class="num">07 —</span> Build Phase — Configuration & Security Validation</h2>
+
+    <p>
+      The DoD Build phase requires SAST and dependency vulnerability checking as baseline requirements.
+      For an infrastructure project, this translates to automated config validation and secret scanning
+      on every commit.
+    </p>
+
+    <div class="phase">
+      <div class="plbl">Check 01 — TOML Syntax Validation</div>
+      <p>
+        Validates <code>velocity.toml</code> for syntax errors before deployment.
+        A malformed config file would silently break the proxy — this catches it at commit time.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Check 02 — Secret Scanning</div>
+      <p>
+        Scans all config files for patterns matching hardcoded passwords, tokens, and keys.
+        Maps directly to the DoD requirement for source code repository security plugins.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Check 03 — Default Credential Detection</div>
+      <p>
+        Fails the pipeline if any file contains <code>password=changeme</code> or similar defaults.
+        Simple but effective gate.
+      </p>
+    </div>
+
+    <pre><code>name: Validate Configs
+on: [push]
+jobs:
+  validate:
+    runs-on: debian-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Validate TOML syntax
+        run: python3 -c "import toml; toml.load('velocity/velocity.toml')"
+      - name: Scan for hardcoded secrets
+        run: |
+          grep -r "password\s*=" . --include="*.toml" \
+            --include="*.yml" --include="*.properties"
+      - name: Check for default credentials
+        run: |
+          if grep -r "password=changeme\|password=admin" .; then
+            exit 1
+          fi</code></pre>
+
+    <div class="divider"></div>
+
+    <!-- ── 08 Core Cluster ── -->
+    <h2 id="core"><span class="num">08 —</span> Building the Core Cluster</h2>
+
+    <p>
+      With the design locked in, the actual build followed a repeatable pattern: clone base template,
+      configure networking, install service, create non-root systemd user, enable and start.
+    </p>
+
+    <h3>Base LXC Template</h3>
+    <p>
+      A Debian 12 (Bookworm) LXC template was created with both Java 21 and Java 25 pre-installed via
+      the Eclipse Temurin repository. Every subsequent LXC is a full clone of this template.
+    </p>
+
+    <h3>Network Isolation</h3>
+    <p>
+      A second bridge interface (<code>vmbr1</code>) was added to Proxmox with NAT masquerade rules.
+      All LXCs attach to this bridge and route internet traffic through the host.
+      The home LAN has no direct access to any LXC.
+    </p>
+
+    <h3>Service Users</h3>
+    <p>
+      Every service runs as a dedicated non-root system user. The systemd unit files use the
+      <code>User=</code> directive to drop privileges before execution.
+    </p>
+
+    <pre><code>[Service]
+User=minecraft
+WorkingDirectory=/opt/minecraft
+ExecStart=/usr/bin/java -Xms1G -Xmx2G -jar server.jar nogui
+Restart=always</code></pre>
+
+    <h3>Velocity Proxy Configuration</h3>
+    <p>
+      Velocity sits in front of both Minecraft nodes and handles player routing, load balancing, and
+      the modern forwarding protocol. The forwarding secret shared between Velocity and each PaperMC
+      backend ensures backends only accept connections from the trusted proxy.
+    </p>
+
+    <div class="callout warning">
+      <strong>Config Complexity Note</strong>
+      The interdependencies between Velocity and PaperMC were the most frustrating part of this build.
+      The <code>player-info-forwarding-mode</code> in Velocity must match the
+      <code>velocity.enabled</code> setting in <code>paper-global.yml</code>, and both must reference
+      the same forwarding secret. Getting this wrong silently drops players with no useful error.
+      Lesson learned: read the source code, not just the docs.
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 09 Deploy ── -->
+    <h2 id="deploy"><span class="num">09 —</span> Deploy Phase — Running Minecraft in Containers</h2>
+
+    <p>
+      The DoD Deploy phase covers artifact deployment, infrastructure provisioning, and post-deployment
+      security scanning. The deployment model here is immutable: to update a node, clone the template,
+      configure it, and swap it in behind Velocity.
+    </p>
+
+    <h3>Two-Node Setup</h3>
+    <p>
+      Two identical PaperMC nodes (<code>minecraft-1</code> at <code>10.10.10.20</code> and
+      <code>minecraft-2</code> at <code>10.10.10.21</code>) run behind Velocity.
+      Both are clones of the same base template with identical configurations.
+      Velocity's <code>try</code> list handles failover automatically.
+    </p>
+
+    <h3>iptables Port Forwarding</h3>
+    <p>
+      Since LXCs are on an isolated internal network, Proxmox uses iptables PREROUTING rules to forward
+      specific ports from the Tailscale interface to the appropriate LXC.
+    </p>
+
+    <pre><code># Minecraft — friends reach this via Tailscale
+iptables -t nat -A PREROUTING -i tailscale0 -p tcp \
+  --dport 25565 -j DNAT --to-destination 10.10.10.10:25565
+
+# Admin services — you only
+iptables -t nat -A PREROUTING -i tailscale0 -p tcp \
+  --dport 3000 -j DNAT --to-destination 10.10.10.30:3000
+iptables -t nat -A PREROUTING -i tailscale0 -p tcp \
+  --dport 8200 -j DNAT --to-destination 10.10.10.40:8200</code></pre>
+
+    <div class="divider"></div>
+
+    <!-- ── 10 Test ── -->
+    <h2 id="test"><span class="num">10 —</span> Test Phase — Failure & Resilience Testing</h2>
+
+    <p>
+      The DoD Test phase includes acceptance testing, performance testing, and manual security testing.
+      For this project, testing meant deliberately breaking things and confirming the system recovered.
+    </p>
+
+    <div class="phase">
+      <div class="plbl">Test 01 — Remote Access Verification</div>
+      <p>
+        Confirmed Proxmox web UI was accessible over Tailscale on T-Mobile 5G with WiFi disabled.
+        Zero port forwarding required on the home router.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Test 02 — Cross-Continental Connectivity</div>
+      <p>
+        A friend <strong>stationed in Qatar</strong> connected to the server. No significant latency.
+        Casual gameplay was smooth with no rubber-banding or timeout events.
+        Tailscale's NAT traversal handled the distance without issue.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Test 03 — Access Control Enforcement</div>
+      <p>
+        Confirmed friends could reach port 25565 but received connection refused on ports 8006, 3000,
+        and 8200. Tailscale ACL grants working exactly as designed.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Test 04 — Service Recovery</div>
+      <p>
+        Tested <code>Restart=always</code> behavior by forcibly killing the Minecraft process.
+        Service auto-restarted within 10 seconds. Velocity's failover logic kept the session alive.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 11 Operate ── -->
+    <h2 id="operate"><span class="num">11 —</span> Operate Phase — Backups & Reliability</h2>
+
+    <p>
+      The DoD Operate phase covers scaling, load balancing, and backup management.
+      Proxmox handles this natively — LXC snapshots provide point-in-time recovery,
+      and the template-based deployment model means any node can be rebuilt in minutes.
+    </p>
+
+    <p>Sleep and suspend were permanently disabled on the host to ensure 24/7 availability:</p>
+
+    <pre><code>systemctl mask sleep.target suspend.target \
+  hibernate.target hybrid-sleep.target</code></pre>
+
+    <p>
+      CPU power management uses the <code>powersave</code> governor — the host idles at roughly
+      10–15 watts when no players are active, scaling up under load.
+    </p>
+
+    <div class="divider"></div>
+
+    <!-- ── 12 Monitor ── -->
+    <h2 id="monitor"><span class="num">12 —</span> Monitor Phase — Observability & Logging</h2>
+
+    <p>
+      The DoD Monitor phase requires Information Security Continuous Monitoring (ISCM), centralized
+      logging, operations monitoring, and alerting. The monitoring stack on <code>10.10.10.50</code>
+      covers all of this.
+    </p>
+
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="lbl">Metrics Collection</div>
+        <div class="nm">Prometheus</div>
+        <div class="ds">Node Exporter on every LXC, scraped every 15 seconds</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Log Aggregation</div>
+        <div class="nm">Loki + Promtail</div>
+        <div class="ds">Ships application and system logs from all containers</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Visualization</div>
+        <div class="nm">Grafana</div>
+        <div class="ds">Node Exporter Full dashboard + Loki log explorer</div>
+      </div>
+    </div>
+
+    <p>
+      Every LXC runs both a <strong>Node Exporter</strong> (system metrics) and a
+      <strong>Promtail agent</strong> (log forwarding). Velocity and Minecraft application logs are
+      shipped to Loki with job labels. In Grafana, querying <code>{job="velocity"}</code> surfaces
+      every player connection and disconnection in real time.
+    </p>
+
+    <div class="callout success">
+      <strong>ISCM Mapping</strong>
+      This stack maps directly to NIST SP 800-137's definition of Information Security Continuous
+      Monitoring: maintaining ongoing awareness of information security, vulnerabilities, and threats
+      to support organizational risk management decisions.
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 13 Security ── -->
+    <h2 id="security"><span class="num">13 —</span> Security Considerations (SecOps Layer)</h2>
+
+    <h3>Zero Trust Networking</h3>
+    <p>
+      The Tailscale ACL policy implements strict least-privilege. Two groups are defined:
+      <code>group:admins</code> with full port access, and <code>group:friends</code> restricted
+      to port 25565 only. The policy is version-controlled and any change is auditable.
+    </p>
+
+    <pre><code>{
+  "groups": {
+    "group:admins": ["robasaldana@github"],
+    "group:friends": ["friend@gmail.com"]
+  },
+  "grants": [
+    {
+      "src": ["group:admins"],
+      "dst": ["proxmox"],
+      "ip": ["tcp:22","tcp:8006","tcp:25565","tcp:3000","tcp:8200","tcp:9090"]
+    },
+    {
+      "src": ["group:friends"],
+      "dst": ["proxmox"],
+      "ip": ["tcp:25565"]
+    }
+  ]
+}</code></pre>
+
+    <h3>Secrets Management with HashiCorp Vault</h3>
+    <p>
+      The Velocity forwarding secret and RCON credentials are stored in Vault's KV-v2 secrets engine
+      under the <code>minecraft/</code> path. No credentials exist in any config file or repository.
+      Vault is initialized with a single unseal key and auto-unseals on reboot via a systemd service.
+    </p>
+
+    <h3>Unprivileged Service Accounts</h3>
+    <p>
+      Every service — Minecraft, Velocity, Gitea, Vault, Prometheus, Grafana, Loki — runs as a
+      dedicated non-root system user. If a service is exploited, the blast radius is contained.
+    </p>
+
+    <h3>Network Segmentation</h3>
+    <p>
+      The internal <code>10.10.10.0/24</code> network is completely invisible from the home LAN.
+      LXCs can reach the internet through the NAT gateway but cannot be reached from the LAN
+      without explicit iptables rules scoped to the Tailscale interface.
+    </p>
+
+    <div class="divider"></div>
+
+    <!-- ── 14 Results ── -->
+    <h2 id="results"><span class="num">14 —</span> Results — Did I Win the Bet?</h2>
+
+    <div class="result-banner">
+      <div class="big">Yes.</div>
+      <p>They bought me RAM. It cost them $15. The humiliation was complimentary.</p>
+    </div>
+
+    <p>
+      The server has been running continuously, hosting up to four players including one in Qatar
+      with no noticeable latency and smooth casual gameplay throughout. The monitoring stack confirms
+      consistent uptime. The Grafana dashboard shows it.
+    </p>
+
+    <p>
+      More importantly — what started as a bet became a production-grade infrastructure project
+      demonstrating real DevSecOps competency. The same patterns used here appear in enterprise
+      environments: zero-trust access, secrets management, CI/CD pipelines with security gates,
+      centralized observability, and infrastructure mapped to a compliance framework.
+    </p>
+
+    <p>The Hostinger server would have cost more annually. This cost $70 upfront and runs indefinitely.</p>
+
+    <div class="skills">
+      <span class="skill g">Proxmox VE</span>
+      <span class="skill g">LXC Containers</span>
+      <span class="skill g">Tailscale Zero Trust</span>
+      <span class="skill g">Network Segmentation</span>
+      <span class="skill b">Gitea CI/CD</span>
+      <span class="skill b">HashiCorp Vault</span>
+      <span class="skill b">Infrastructure as Code</span>
+      <span class="skill b">Secrets Management</span>
+      <span class="skill p">Prometheus</span>
+      <span class="skill p">Grafana</span>
+      <span class="skill p">Loki + Promtail</span>
+      <span class="skill p">DoD DevSecOps Framework</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 15 Limitations ── -->
+    <h2 id="limitations"><span class="num">15 —</span> Limitations & Reality Check</h2>
+
+    <p>No honest writeup skips this section.</p>
+
+    <ul>
+      <li><strong>8GB RAM is the ceiling.</strong> Four players is the comfortable operating range. The RAM upgrade (courtesy of my friends) brings that to 16GB.</li>
+      <li><strong>Single point of failure.</strong> The HP EliteDesk is the only physical machine. If it goes down, everything goes down. This is a homelab, not a data center.</li>
+      <li><strong>No automated backups yet.</strong> World data lives on the LXC filesystem. Proxmox snapshots exist but aren't scheduled.</li>
+      <li><strong>Vault unsealing.</strong> After a reboot, the auto-unseal script handles the key — but storing an unseal key on disk is a deliberate homelab trade-off, not a production recommendation.</li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <!-- ── 16 Future ── -->
+    <h2 id="future"><span class="num">16 —</span> Future Improvements</h2>
+
+    <div class="phase">
+      <div class="plbl">Next</div>
+      <p>
+        <strong>Trivy Security Scanning</strong> — integrate CVE scanning into the Gitea pipeline.
+        Every push scans for known vulnerabilities. Pipeline fails on critical findings.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Next</div>
+      <p>
+        <strong>Ansible IaC</strong> — automate full node provisioning. One command to spin up a new
+        Minecraft node, configure it, and register it with Velocity.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Next</div>
+      <p>
+        <strong>Grafana Alerting</strong> — Discord webhook notifications for service downtime,
+        high memory usage, and failed login attempts.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Next</div>
+      <p>
+        <strong>Scheduled Backups</strong> — automated Proxmox snapshots on a cron schedule with
+        retention policy. Currently a known gap.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 17 Conclusion ── -->
+    <h2 id="conclusion"><span class="num">17 —</span> Conclusion</h2>
+
+    <p>
+      A $70 eBay machine. A bet. A friend in Qatar. And somehow, a production-grade DevSecOps homelab
+      mapped to a DoD framework.
+    </p>
+
+    <p>
+      The real takeaway isn't the Minecraft server — it's that every component of this build has a
+      direct analog in enterprise infrastructure. Proxmox is VMware. Tailscale ACLs are network access
+      policies. Gitea Actions is Jenkins. Vault is CyberArk. Prometheus and Grafana are Datadog.
+      Loki is Splunk.
+    </p>
+
+    <p>
+      You don't need a cloud budget or enterprise hardware to practice real DevSecOps. You need a clear
+      methodology, the willingness to read documentation, and ideally a friend who almost bought a
+      Hostinger server.
+    </p>
+
+    <div class="callout success">
+      <strong>Find Me Online</strong>
+      GitHub: <a href="https://github.com/howeager" target="_blank" rel="noopener">github.com/howeager</a>
+      — all infrastructure code from this project lives in the <code>minecraft-infra</code> repository.
+    </div>
+
+  </article>
+
+  <a href="../index.html" class="back">← Back to Terminal</a>
+
+</main>
+
+<footer>
+  <p>Written by Roberto Saldana · <a href="https://github.com/howeager" target="_blank" rel="noopener">howeager</a> · May 2026</p>
+  <p style="margin-top:0.4rem;font-size:0.7rem;">Built with an $85 homelab and spite.</p>
+</footer>
+
+</body>
+</html>

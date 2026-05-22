@@ -1,0 +1,260 @@
+    const banner = [
+      "╔══════════════════════════════════════════════════════════╗",
+      "║              ROBERTO SALDANA - PORTFOLIO                 ║",
+      "╚══════════════════════════════════════════════════════════╝",
+      "",
+      "Welcome to my terminal-based portfolio!",
+      "",
+      "About Me:",
+      "  Name: Roberto Saldana",
+      "  Degree: B.S. in Computer Information Systems (CIS)",
+      "  School: Cal Poly Pomona - 4th Year",
+      "  CCDC Competitor | Treasurer, Security Operations Club",
+      "  Hobbies: Building things with my own two hands; editing goofy videos when time allows",
+      "",
+      "═══════════════════════════════════════════════════════════",
+      ""
+    ];
+
+    const posts = [
+      {
+        title: "Building a Production-Grade Minecraft Server Nobody Asked For",
+        url: "pages/minecraft-server.html",
+        date: "2026-05-21"
+      }
+    ];
+
+    const commands = {
+      ls(){
+        let html = '<div class="success" style="font-weight:700">Available commands and recent blog posts:</div><br>';
+        html += '<div style="margin-left: 16px">';
+        html += '<div><span class="success">Commands:</span></div>';
+        html += '<div>  help - Show available commands</div>';
+        html += '<div>  about - Learn more about me</div>';
+        html += '<div>  contact - Get my contact information</div>';
+        html += '<div>  open &lt;#|all&gt; - Open a blog post</div>';
+        html += '<div>  clear - Clear the terminal</div>';
+        html += '<br><div><span class="success">Recent Blog Posts:</span></div>';
+        posts.forEach((p,i)=>{
+          html += `<div>  <a href="${p.url}" class="blog-post" data-index="${i}">${i+1}. ${p.title}</a> <span style="color:#888">(${p.date})</span></div>`
+        });
+        html += '</div>';
+        return html;
+      },
+      help(){
+        return `<div class="success">Available commands:</div>
+          <div style="margin-left:16px">
+            <div>ls - List commands and posts</div>
+            <div>about - Learn more about me</div>
+            <div>contact - Get my contact info</div>
+            <div>open &lt;#|all&gt; - Open a post in viewer</div>
+            <div>clear - Clear the terminal</div>
+          </div>`;
+      },
+      about(){
+        return `<div>
+          <div><span class="success">About Roberto Saldana</span></div><br>
+          <div>I'm a 4th year CIS student at Cal Poly Pomona, a CCDC competitor,</div>
+          <div>and the Treasurer of my university's Security Operations Club.</div>
+          <br>
+          <div>I love building things with my own two hands and editing goofy videos</div>
+          <div>whenever I can carve out the time.</div>
+          <br>
+          <div>Current Focus:</div>
+          <div style="margin-left:16px">
+            <div>- Systems Security</div>
+            <div>- Security operations & blue-team tooling</div>
+            <div>- Competitive readiness (CCDC)</div>
+          </div>
+        </div>`;
+      },
+      contact(){
+        return `<div>
+          <div><span class="success">Contact Information</span></div><br>
+          <div>Email: <a href="mailto:robsal03@outlook.com">robsal03@outlook.com</a></div>
+          <div>GitHub: <a href="https://github.com/howeager" target="_blank" rel="noopener">github.com/howeager</a></div>
+          <div>LinkedIn: <a href="https://www.linkedin.com/in/rob-saldana" target="_blank" rel="noopener">linkedin.com/in/robsal03@outlook.com</a></div>
+        </div>`;
+      },
+      clear(){
+        output.innerHTML = '';
+        return '';
+      },
+      open(arg){
+        if(!arg){ return `<span class="error">Usage:</span> open &lt;number|all&gt;` }
+        if(arg === 'all'){
+          openViewer(posts[0].url, posts[0].title);
+          return `<span class="success">Opening all posts in sequence… (showing #1)</span>`;
+        }
+        const idx = Number(arg);
+        if(Number.isNaN(idx) || idx < 1 || idx > posts.length){
+          return `<span class="error">Invalid index.</span> Type <span class="success">ls</span> to list posts.`;
+        }
+        openViewer(posts[idx-1].url, posts[idx-1].title);
+        return `<span class="success">Opening: ${posts[idx-1].title}</span>`;
+      }
+    };
+
+    const term = document.getElementById('terminal');
+    const output = document.getElementById('output');
+    const prompt = document.getElementById('prompt');
+    const input = document.getElementById('input');
+
+    let line=0, col=0;
+    function typeWriter(){
+      if(line < banner.length){
+        const current = banner[line];
+        if(col < current.length){
+          output.innerHTML += current.charAt(col);
+          col++;
+          setTimeout(typeWriter, 8);
+        }else{
+          output.innerHTML += '<br>';
+          line++; col=0;
+          setTimeout(typeWriter, 24);
+        }
+      }else{
+        input.focus();
+        showToast();
+      }
+    }
+
+    const history = [];
+    let hIndex = -1;
+
+    function printPrompted(commandText, resultHTML){
+      const cmdLine = document.createElement('div');
+      cmdLine.className = 'line';
+      cmdLine.innerHTML = `<span class="user">roberto@cal-poly-pomona</span>:<span class="path">~</span>$ <span class="command">${commandText}</span>`;
+      term.insertBefore(cmdLine, prompt);
+      if(resultHTML){
+        const res = document.createElement('div');
+        res.className = 'output';
+        res.innerHTML = resultHTML;
+        term.insertBefore(res, prompt);
+      }
+      requestAnimationFrame(()=>{
+        term.scrollTop = term.scrollHeight + 200;
+      });
+    }
+
+    function run(raw){
+      const txt = raw.trim();
+      if(!txt) return;
+      const [cmd, ...args] = txt.split(/\s+/);
+      const arg = args.join(' ').trim();
+      if(typeof commands[cmd] === 'function'){
+        const out = commands[cmd](arg);
+        if(cmd !== 'clear') printPrompted(raw, out);
+      }else{
+        printPrompted(raw, `<span class="error">bash: ${cmd}: command not found</span><br>Type 'help' to see available commands.`);
+      }
+    }
+
+    input.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        const v = input.value;
+        history.unshift(v);
+        hIndex = -1;
+        run(v);
+        input.value = '';
+      }else if(e.key === 'ArrowUp'){
+        e.preventDefault();
+        if(history.length){
+          hIndex = Math.min(hIndex + 1, history.length - 1);
+          input.value = history[hIndex] ?? '';
+          queueMicrotask(()=> input.setSelectionRange(input.value.length, input.value.length));
+        }
+      }else if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        if(history.length){
+          hIndex = Math.max(hIndex - 1, -1);
+          input.value = hIndex === -1 ? '' : (history[hIndex] ?? '');
+          queueMicrotask(()=> input.setSelectionRange(input.value.length, input.value.length));
+        }
+      }
+    });
+
+    // open links in the viewer
+    document.addEventListener('click', (e)=>{
+      const a = e.target.closest('a.blog-post');
+      if(a){
+        e.preventDefault();
+        const idx = Number(a.dataset.index ?? 0);
+        const p = posts[idx];
+        openViewer(p.url, p.title);
+      }
+    });
+
+    const viewer = document.getElementById('viewer');
+    const viewerTitle = document.getElementById('viewerTitle');
+    const viewerType = document.getElementById('viewerType');
+    const viewerSidebar = document.getElementById('viewerSidebar');
+    const viewerContent = document.getElementById('viewerContent');
+    const btnClose = document.getElementById('btnClose');
+    const btnPop = document.getElementById('btnPop');
+
+    function openViewer(url, title){
+      viewerTitle.textContent = title || 'Untitled';
+      viewerType.textContent = 'text/html';
+      viewerSidebar.innerHTML = '';
+      viewerContent.innerHTML = '';
+
+      const files = [
+        { name: 'README.md', type:'text' },
+        { name: 'media/image.jpg', type:'image' },
+        { name: 'media/video.mp4', type:'video' },
+        { name: 'src/snippet.js', type:'code' }
+      ];
+      files.forEach(f=>{
+        const row = document.createElement('div');
+        row.className = 'viewer-file';
+        row.innerHTML = `<span class="dot"></span> <span>${f.name}</span> <small>(${f.type})</small>`;
+        row.addEventListener('click', ()=> showDemo(f.type));
+        viewerSidebar.appendChild(row);
+      });
+
+      const iframe = document.createElement('iframe');
+      iframe.loading = 'eager';
+      iframe.src = url;
+      viewerContent.appendChild(iframe);
+
+      btnPop.onclick = () => window.open(url, '_blank');
+      btnClose.onclick = () => viewer.classList.remove('show');
+      viewer.classList.add('show');
+    }
+
+    function showDemo(kind){
+      viewerContent.innerHTML = '';
+      const article = document.createElement('article');
+      if(kind==='text'){
+        article.innerHTML = `<h1>Notes</h1><p>This file supports <strong>rich text</strong>, images, videos, and code blocks. Write freely, embed assets, and keep hacking!</p>`;
+      }else if(kind==='image'){
+        article.innerHTML = `<h2>Image Preview</h2><img src="https://picsum.photos/1200/600" alt="Demo" style="max-width:100%;border-radius:10px" />`;
+      }else if(kind==='video'){
+        article.innerHTML = `<h2>Video Preview</h2><video controls style="max-width:100%;border-radius:10px"><source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4"></video>`;
+      }else{
+        article.innerHTML = `<h2>Code Snippet</h2><pre><code>// JavaScript demo
+function greet(name){
+  return \`Hello, \${name}! From a code block ✅\`;
+}
+console.log(greet('World'));</code></pre>`;
+      }
+      viewerContent.appendChild(article);
+    }
+
+    input.addEventListener('focus', ()=>{
+      setTimeout(()=>{
+        prompt.scrollIntoView({block:'end', behavior:'smooth'});
+      }, 150);
+    });
+
+    const toast = document.getElementById('toast');
+    const toastClose = document.getElementById('toastClose');
+    function showToast(){
+      toast.classList.add('show');
+      setTimeout(()=> toast.classList.remove('show'), 8000);
+    }
+    toastClose.addEventListener('click', ()=> toast.classList.remove('show'));
+
+    setTimeout(typeWriter, 400);
