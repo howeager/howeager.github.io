@@ -125,10 +125,22 @@
       scrollPromptIntoView();
     }
 
-    function scrollPromptIntoView(){
+    function scrollToBottom(){
+      const scroll = ()=>{
+        term.scrollTop = term.scrollHeight;
+      };
       requestAnimationFrame(()=>{
-        prompt.scrollIntoView({ block: 'end', behavior: 'smooth' });
+        scroll();
+        requestAnimationFrame(scroll);
       });
+      setTimeout(scroll, 50);
+      if(document.activeElement === input){
+        setTimeout(scroll, 150);
+      }
+    }
+
+    function scrollPromptIntoView(){
+      scrollToBottom();
     }
 
     term.addEventListener('pointerdown', (e)=>{
@@ -160,6 +172,7 @@
         }
       }else{
         if(!isCoarsePointer) focusInput();
+        scrollToBottom();
         showToast();
       }
     }
@@ -178,9 +191,7 @@
         res.innerHTML = resultHTML;
         term.insertBefore(res, prompt);
       }
-      requestAnimationFrame(()=>{
-        term.scrollTop = term.scrollHeight + 200;
-      });
+      scrollToBottom();
     }
 
     function run(raw){
@@ -203,6 +214,7 @@
         hIndex = -1;
         run(v);
         input.value = '';
+        scrollToBottom();
       }else if(e.key === 'ArrowUp'){
         e.preventDefault();
         if(history.length){
@@ -233,38 +245,18 @@
 
     const viewer = document.getElementById('viewer');
     const viewerTitle = document.getElementById('viewerTitle');
-    const viewerType = document.getElementById('viewerType');
-    const viewerSidebar = document.getElementById('viewerSidebar');
     const viewerContent = document.getElementById('viewerContent');
     const btnClose = document.getElementById('btnClose');
-    const btnPop = document.getElementById('btnPop');
 
     function openViewer(url, title){
       viewerTitle.textContent = title || 'Untitled';
-      viewerType.textContent = 'text/html';
-      viewerSidebar.innerHTML = '';
       viewerContent.innerHTML = '';
-
-      const files = [
-        { name: 'README.md', type:'text' },
-        { name: 'media/image.jpg', type:'image' },
-        { name: 'media/video.mp4', type:'video' },
-        { name: 'src/snippet.js', type:'code' }
-      ];
-      files.forEach(f=>{
-        const row = document.createElement('div');
-        row.className = 'viewer-file';
-        row.innerHTML = `<span class="dot"></span> <span>${f.name}</span> <small>(${f.type})</small>`;
-        row.addEventListener('click', ()=> showDemo(f.type));
-        viewerSidebar.appendChild(row);
-      });
 
       const iframe = document.createElement('iframe');
       iframe.loading = 'eager';
       iframe.src = url;
       viewerContent.appendChild(iframe);
 
-      btnPop.href = new URL(url, window.location.href).href;
       btnClose.onclick = closeViewer;
       viewer.classList.add('show');
       document.body.style.overflow = 'hidden';
@@ -273,25 +265,6 @@
     function closeViewer(){
       viewer.classList.remove('show');
       document.body.style.overflow = '';
-    }
-
-    function showDemo(kind){
-      viewerContent.innerHTML = '';
-      const article = document.createElement('article');
-      if(kind==='text'){
-        article.innerHTML = `<h1>Notes</h1><p>This file supports <strong>rich text</strong>, images, videos, and code blocks. Write freely, embed assets, and keep hacking!</p>`;
-      }else if(kind==='image'){
-        article.innerHTML = `<h2>Image Preview</h2><img src="https://picsum.photos/1200/600" alt="Demo" style="max-width:100%;border-radius:10px" />`;
-      }else if(kind==='video'){
-        article.innerHTML = `<h2>Video Preview</h2><video controls style="max-width:100%;border-radius:10px"><source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4"></video>`;
-      }else{
-        article.innerHTML = `<h2>Code Snippet</h2><pre><code>// JavaScript demo
-function greet(name){
-  return \`Hello, \${name}! From a code block ✅\`;
-}
-console.log(greet('World'));</code></pre>`;
-      }
-      viewerContent.appendChild(article);
     }
 
     input.addEventListener('focus', ()=>{
@@ -320,6 +293,7 @@ console.log(greet('World'));</code></pre>`;
           span.textContent = text;
           output.appendChild(span);
         });
+        scrollToBottom();
         showToast();
         return;
       }
