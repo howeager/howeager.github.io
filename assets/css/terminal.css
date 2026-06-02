@@ -136,10 +136,13 @@ a:hover{ text-decoration:underline; color:var(--accent-green) }
 .viewer-title{ color:#e6e6e6; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
 .viewer-actions{ margin-left:auto; display:flex; gap:6px }
 .chip{ background:#333; color:#cfd; padding:4px 8px; border-radius:999px; font-size:12px }
-.viewer-actions button{
+.viewer-actions button,
+.viewer-actions a{
   background:#333; color:#eee; border:1px solid #444; border-radius:8px; padding:6px 10px; cursor:pointer; font-family:var(--mono);
+  text-decoration:none; display:inline-block;
 }
-.viewer-actions button:hover{ background:#3b3b3b }
+.viewer-actions button:hover,
+.viewer-actions a:hover{ background:#3b3b3b }
 .viewer-body{ flex:1; display:flex; min-height:0 }
 .viewer-sidebar{
   width:220px; background:#1a1a1a; border-right:1px solid rgba(255,255,255,.08);

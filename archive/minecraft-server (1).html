@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Building a Production-Grade Minecraft Server Nobody Asked For – Roberto Saldana</title>
+  <link rel="stylesheet" href="../assets/css/blog.css">
+
+  <!--
+    ───────────────────────────────────────────────────────────────────────
+    IMAGE PLACEHOLDERS
+    ───────────────────────────────────────────────────────────────────────
+    The live site renders images through viewer.js using:
+        <div data-viewer="../assets/img/file.png" data-caption="..."></div>
+
+    While the real screenshots are being captured, every image slot below is a
+    <figure class="shot"> placeholder that documents:
+        • the exact filename viewer.js expects   (data-file)
+        • the caption that will appear            (the <figcaption>)
+        • a SHOT LIST note — what to actually capture for that slot
+
+    To go live: drop the real PNG/JPG at the listed path, then replace the
+    whole <figure class="shot"> block with the one-line data-viewer div shown
+    inside each placeholder's comment. The .shot CSS below is self-contained
+    and harmless if it stays.
+    ───────────────────────────────────────────────────────────────────────
+  -->
+  <style>
+    .shot{
+      margin:1.8rem 0;
+      border:1px dashed var(--green, #8ae234);
+      border-radius:8px;
+      background:
+        repeating-linear-gradient(45deg,
+          rgba(138,226,52,.04) 0 12px,
+          transparent 12px 24px);
+      padding:0;
+      overflow:hidden;
+    }
+    .shot-head{
+      display:flex;align-items:center;gap:.5rem;
+      padding:.55rem .85rem;
+      background:rgba(138,226,52,.08);
+      border-bottom:1px solid rgba(138,226,52,.25);
+      font-family:var(--mono, monospace);
+      font-size:.72rem;
+      color:var(--green, #8ae234);
+      letter-spacing:.02em;
+    }
+    .shot-head .dot{
+      width:9px;height:9px;border-radius:50%;
+      background:var(--green,#8ae234);
+      box-shadow:0 0 6px var(--green,#8ae234);
+      flex:0 0 auto;
+    }
+    .shot-head .file{
+      margin-left:auto;opacity:.7;
+      font-size:.68rem;word-break:break-all;text-align:right;
+    }
+    .shot-body{
+      display:flex;align-items:center;justify-content:center;
+      min-height:150px;padding:1.6rem 1rem;text-align:center;
+    }
+    .shot-body .glyph{font-size:1.7rem;opacity:.5;margin-bottom:.5rem;}
+    .shot-note{
+      display:block;
+      font-family:var(--mono, monospace);
+      font-size:.78rem;line-height:1.5;
+      color:var(--blue, #729fcf);
+    }
+    .shot-note b{color:var(--green,#8ae234);font-weight:600;}
+    figcaption{
+      padding:.55rem .85rem;
+      border-top:1px solid rgba(138,226,52,.2);
+      font-size:.74rem;color:var(--muted,#9a9a9a);
+      font-style:italic;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="../index.html" class="pill">← Back to Terminal</a>
+</header>
+
+<main>
+  <div class="post-header">
+    <h1>Building a Production-Grade Minecraft Server Nobody Asked For</h1>
+    <div class="meta">
+      <span>2026-05-21</span>
+      <span>·</span>
+      <em>Roberto Saldana</em>
+      <span>·</span>
+      <span>40 min read</span>
+      <span class="tag">DevSecOps</span>
+      <span class="tag">Homelab</span>
+      <span class="tag">Infrastructure</span>
+      <span class="tag">Minecraft</span>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <details open>
+      <summary>Table of Contents <span class="toc-count">17 sections</span></summary>
+      <ol>
+        <li><a href="#intro">Introduction</a></li>
+        <li><a href="#what">What Are We Working With</a></li>
+        <li><a href="#cheap">Let's Be Cheap About It</a></li>
+        <li><a href="#methodology">DevSecOps Methodology</a></li>
+        <li><a href="#plan">Plan Phase — Architecture Design</a></li>
+        <li><a href="#develop">Develop Phase — Infrastructure as Code</a></li>
+        <li><a href="#build">Build Phase — Config & Security Validation</a></li>
+        <li><a href="#core">Building the Core Cluster</a></li>
+        <li><a href="#deploy">Deploy Phase — Running Minecraft</a></li>
+        <li><a href="#failover">Failover & Write-Lock System</a></li>
+        <li><a href="#test">Test Phase — Failure & Resilience Testing</a></li>
+        <li><a href="#operate">Operate Phase — Backups & Reliability</a></li>
+        <li><a href="#monitor">Monitor Phase — Observability & Logging</a></li>
+        <li><a href="#security">Security Considerations</a></li>
+        <li><a href="#results">Results — Did I Win the Bet?</a></li>
+        <li><a href="#limitations">Limitations & Reality Check</a></li>
+        <li><a href="#conclusion">Conclusion</a></li>
+      </ol>
+    </details>
+  </nav>
+
+  <article>
+
+    <!-- ── 01 Introduction ── -->
+    <h2 id="intro"><span class="num">01 —</span> Introduction</h2>
+
+    <p>
+      Every good infrastructure project I've ever built started as a personal problem, not a
+      résumé line. This one started with a group chat at 11pm.
+    </p>
+
+    <p>
+      Minecraft is the game my friends and I keep coming back to. Not because it's the best game
+      ever made, but because it's the one thing that still gets all of us into the same voice call.
+      We've drifted — different careers, different cities, different time zones, one of us literally
+      stationed overseas. Life pulled everyone in separate directions. And then somebody types
+      "server?" into the chat and suddenly it's like none of that happened. That's the part worth
+      protecting. The game is just the excuse.
+    </p>
+
+    <p>
+      The trouble is that the way we'd always done it didn't survive growing up. Boot a server,
+      paste your IP in the chat, play until someone's home internet dies or somebody griefs the
+      world into an accidental anarchy server. Fun, fragile, and completely dependent on one person's
+      laptop staying awake. It worked when we were all in the same dorm. It does not work when
+      "everyone's online" means three continents.
+    </p>
+
+    <p>
+      So one night the friend stationed in Qatar dropped a link in the chat: a Hostinger plan built
+      specifically for hosting Minecraft. Everybody pool in, split the cost, problem solved.
+    </p>
+
+    <!-- IMG SLOT 01 -->
+    <figure class="shot" data-file="../assets/img/text_message.png">
+      <div class="shot-head"><span class="dot"></span> image_placeholder
+        <span class="file">assets/img/text_message.png</span></div>
+      <div class="shot-body">
+        <span class="shot-note"><span class="glyph">💬</span><br>
+          <b>SHOT LIST:</b> Screenshot of the actual group-chat message proposing the
+          Hostinger buy-in. Crop to just the relevant bubble(s). Blur names/avatars if you
+          want privacy. This is the inciting moment — keep it raw and real.</span>
+      </div>
+      <figcaption>The message that started everything.</figcaption>
+    </figure>
+    <!-- GO LIVE: <div data-viewer="../assets/img/text_message.png" data-caption="The message that started everything"></div> -->
+
+    <p>
+      It was a completely reasonable suggestion. I clicked through the pricing page anyway.
+    </p>
+
+    <!-- IMG SLOT 02 -->
+    <figure class="shot" data-file="../assets/img/hostinger_website.png">
+      <div class="shot-head"><span class="dot"></span> image_placeholder
+        <span class="file">assets/img/hostinger_website.png</span></div>
+      <div class="shot-body">
+        <span class="shot-note"><span class="glyph">🖥️</span><br>
+          <b>SHOT LIST:</b> Clean screenshot of Hostinger's Minecraft hosting landing page —
+          show the plan tiers and the annual price clearly. This is the "easy button" the rest
+          of the post argues against, so the price needs to be legible.</span>
+      </div>
+      <figcaption>Hostinger's Minecraft hosting page — one click, enter a card, done.</figcaption>
+    </figure>
+    <!-- GO LIVE: <div data-viewer="../assets/img/hostinger_website.png" data-caption="Hostinger's Minecraft hosting page"></div> -->
+
+    <p>
+      And honestly? From a normal-person standpoint, it's perfect. One click, enter a card, you're
+      playing in five minutes. No Linux, no config files, no 2am debugging. It <em>just works</em>.
+    </p>
+
+    <p>
+      Which is exactly what got under my skin. I'm in school for Computer Information Systems with a
+      cybersecurity focus. I've built infrastructure before. Paying a monthly subscription so a
+      company could run a Java process for me felt like buying bottled water while standing next to
+      a well I knew how to dig. It wasn't about the money. It was about the fact that nobody even
+      thought to ask whether I could just… do this.
+    </p>
+
+    <p>
+      So I made them an offer instead of an argument. If I could stand up a setup that matched or beat
+      what Hostinger was selling — same uptime, same "it just works" experience for the people playing —
+      then the friend about to spend a year on Hostinger owed me one year of that subscription instead.
+      Put the money where the trash talk was.
+    </p>
+
+    <!-- IMG SLOT 03 -->
+    <figure class="shot" data-file="../assets/img/text_message_2.png">
+      <div class="shot-head"><span class="dot"></span> image_placeholder
+        <span class="file">assets/img/text_message_2.png</span></div>
+      <div class="shot-body">
+        <span class="shot-note"><span class="glyph">🤝</span><br>
+          <b>SHOT LIST:</b> Screenshot of the chat where the bet gets accepted. The "deal" /
+          "bet" reply is the payoff — make sure that exchange is the focal point of the crop.</span>
+      </div>
+      <figcaption>The bet, on record. He agreed.</figcaption>
+    </figure>
+    <!-- GO LIVE: <div data-viewer="../assets/img/text_message_2.png" data-caption="The bet proposal — he agreed"></div> -->
+
+    <p>
+      He agreed.
+    </p>
+
+    <p>
+      <strong>And then it got quiet on my end.</strong> Some small part of me was hoping he'd laugh
+      it off. Instead I'd just publicly committed to building production-grade server infrastructure —
+      from scratch, on a budget, on a deadline — for a group of people whose only requirement was
+      "let me punch trees with my friends." No pressure.
+    </p>
+
+    <p>
+      What follows is everything that came after that text: Proxmox, LXC containers, Tailscale
+      zero-trust networking, a Velocity proxy, HashiCorp Vault, Prometheus, Grafana, Loki, a
+      self-hosted Gitea CI/CD pipeline, and a custom write-lock failover system I had to invent
+      because the obvious approach corrupts your world. All of it mapped, deliberately, against
+      the DoD's DevSecOps framework. For a Minecraft server. I regret nothing.
+    </p>
+
+    <div class="divider"></div>
+
+    <!-- ── 02 Stack ── -->
+    <h2 id="what"><span class="num">02 —</span> What Are We Working With</h2>
+
+    <p>
+      Before the story gets into the weeds, here's the whole stack in one place. The thing I want
+      you to notice isn't the logo count — it's that every single piece is something you'd actually
+      find in a real enterprise environment, just shrunk down to fit on one $70 desktop. Nothing here
+      is in the build because it looked cool in a diagram. Each tool is solving a specific problem the
+      bet forced me to solve.
+    </p>
+
+    <div class="stack-grid">
+      <a class="stack-card" href="https://www.proxmox.com/en/proxmox-virtual-environment/overview" target="_blank" rel="noopener">
+        <div class="lbl">Hypervisor</div>
+        <div class="nm">Proxmox VE 9.1</div>
+        <div class="ds">Bare metal hypervisor running all LXC containers on a single HP EliteDesk</div>
+      </a>
+      <a class="stack-card" href="https://tailscale.com/" target="_blank" rel="noopener">
+        <div class="lbl">Networking</div>
+        <div class="nm">Tailscale</div>
+        <div class="ds">WireGuard-based mesh VPN with ACL access control — no port forwarding required</div>
+      </a>
+      <a class="stack-card" href="https://docs.papermc.io/velocity/" target="_blank" rel="noopener">
+        <div class="lbl">Proxy</div>
+        <div class="nm">Velocity 3.5</div>
+        <div class="ds">Minecraft reverse proxy handling load balancing and player routing</div>
+      </a>
+      <a class="stack-card" href="https://docs.papermc.io/paper/" target="_blank" rel="noopener">
+        <div class="lbl">Game Server</div>
+        <div class="nm">PaperMC 26.1.2</div>
+        <div class="ds">High-performance Minecraft server — two nodes with shared world storage</div>
+      </a>
+      <a class="stack-card" href="https://about.gitea.com/" target="_blank" rel="noopener">
+        <div class="lbl">Source Control + CI/CD</div>
+        <div class="nm">Gitea + Actions</div>
+        <div class="ds">Self-hosted Git with automated validation and deployment pipelines</div>
+      </a>
+      <a class="stack-card" href="https://developer.hashicorp.com/vault" target="_blank" rel="noopener">
+        <div class="lbl">Secrets Management</div>
+        <div class="nm">HashiCorp Vault</div>
+        <div class="ds">Centralized KV-v2 secrets store — no hardcoded credentials anywhere</div>
+      </a>
+      <a class="stack-card" href="https://prometheus.io/" target="_blank" rel="noopener">
+        <div class="lbl">Metrics</div>
+        <div class="nm">Prometheus</div>
+        <div class="ds">Node Exporter scraping every LXC every 15 seconds</div>
+      </a>
+      <a class="stack-card" href="https://grafana.com/" target="_blank" rel="noopener">
+        <div class="lbl">Visualization</div>
+        <div class="nm">Grafana</div>
+        <div class="ds">Dashboards for infrastructure metrics, game server health, and log queries</div>
+      </a>
+      <a class="stack-card" href="https://grafana.com/oss/loki/" target="_blank" rel="noopener">
+        <div class="lbl">Logging</div>
+        <div class="nm">Loki + Promtail</div>
+        <div class="ds">Centralized log aggregation from all containers shipped via Promtail agents</div>
+      </a>
+      <a class="stack-card" href="https://pve.proxmox.com/pve-docs/pve-admin-guide.html#chapter_pct" target="_blank" rel="noopener">
+        <div class="lbl">Containerization</div>
+        <div class="nm">LXC (Debian 12)</div>
+        <div class="ds">Lightweight OS containers with systemd — cloned from a single base template</div>
+      </a>
+      <a class="stack-card" href="https://www.ansible.com/" target="_blank" rel="noopener">
+        <div class="lbl">Automation</div>
+        <div class="nm">Ansible</div>
+        <div class="ds">Infrastructure as Code for reproducible node provisioning</div>
+      </a>
+      <a class="stack-card" href="https://adoptium.net/temurin/releases/" target="_blank" rel="noopener">
+        <div class="lbl">Runtime</div>
+        <div class="nm">Eclipse Temurin 25</div>
+        <div class="ds">Java 25 LTS via the Adoptium repository — required for PaperMC 26.x</div>
+      </a>
+    </div>
+
+    <h3>The Network Diagram</h3>
+
+    <p>
+      Here's the whole system on one page. The detail that ties the entire build together is that
+      there are exactly two kinds of people who can touch this network, and they get wildly different
+      doors. I come in as admin over Tailscale and reach everything — Proxmox on 8006, Gitea on 3000,
+      Vault on 8200, Grafana on 3001. My friends come in over the same Tailscale, but their access
+      grant opens exactly one port: 25565, the game. Everything else is invisible to them. Not blocked
+      with a scary error — invisible. And yes, I designed it that way specifically because I know they'll
+      go looking.
+    </p>
+
+    <!-- IMG SLOT 04 -->
+    <figure class="shot" data-file="../assets/img/diagram.png">
+      <div class="shot-head"><span class="dot"></span> image_placeholder
+        <span class="file">assets/img/diagram.png</span></div>
+      <div class="shot-body">
+        <span class="shot-note"><span class="glyph">🗺️</span><br>
+          <b>SHOT LIST:</b> The network topology diagram. Proxmox host in the center with its two
+          identities (192.168.4.41 LAN + 100.107.12.47 Tailscale); the isolated 10.10.10.0/24 bridge
+          below it; Velocity → minecraft-1/minecraft-2; the monitoring + Gitea + Vault branches;
+          and two user types entering through Tailscale (admin = all ports, friends = 25565 only).
+          Export at 2x for retina. This is the hero image of the post.</span>
+      </div>
+      <figcaption>Proxmox Homelab — Minecraft DevSecOps network topology.</figcaption>
+    </figure>
+    <!-- GO LIVE: <div data-viewer="../assets/img/diagram.png" data-caption="Proxmox Homelab — Minecraft DevSecOps Network"></div> -->
+
+    <p>
+      The Proxmox host lives in the middle wearing two faces — a local LAN address
+      (<code>192.168.4.41</code>) and a Tailscale address (<code>100.107.12.47</code>). Everything
+      underneath it sits on an isolated internal bridge (<code>vmbr1</code>) at
+      <code>10.10.10.0/24</code>. Nothing on that subnet is reachable from the outside world.
+      All traffic has to pass through the host first, where iptables PREROUTING rules forward only
+      specific ports from the Tailscale interface to the right container. The home router, the ISP,
+      a stranger on the internet — none of them even know that internal network exists.
+    </p>
+
+    <p>
+      Velocity is the single front door for players. Every Minecraft connection hits it on 25565,
+      and it routes the player to a backend PaperMC node. Meanwhile the monitoring stack quietly
+      scrapes metrics from every container and ships every log line to Loki, and Gitea sits off to
+      the side making sure no config change reaches a running service without passing through a
+      pipeline first. That's the whole shape of it. The rest of this post is how each of those boxes
+      got built — and what broke along the way.
+    </p>
+
+    <h3>Why These Specific Tools</h3>
+
+    <div class="why-table">
+      <div class="why-row">
+        <div class="why-tool"><code>proxmox</code></div>
+        <div class="why-reason">Free and open source. LXC containers are lighter than full VMs — each service gets its own isolated environment without the overhead. Proxmox runs on Debian, the same OS as all the LXCs, making the entire stack consistent. VMware costs money.</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>tailscale</code></div>
+        <div class="why-reason">Zero config VPN with built-in ACLs and a free tier that covers this entire use case. No server to maintain unlike WireGuard or OpenVPN. NAT traversal works globally — including Qatar — without touching the home router. WireGuard handles the cryptography underneath.</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>velocity</code></div>
+        <div class="why-reason">More secure and performant than BungeeCord. The modern forwarding protocol cryptographically prevents backend IP spoofing using a shared secret. Velocity is the current community standard for Minecraft proxy infrastructure.</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>papermc</code></div>
+        <div class="why-reason">Fastest Minecraft server implementation available. Better ticks-per-second than vanilla, asynchronous chunk loading, and Spark profiler bundled. The performance ceiling matters when running two nodes on a single desktop machine.</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>gitea</code></div>
+        <div class="why-reason">Self-hosted GitHub equivalent that runs on 512MB RAM. You own the data. Actions runners are built in with no separate CI server needed. The entire dev workflow — push, validate, deploy — runs on the same LXC that hosts the repos.</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>hashicorp-vault</code></div>
+        <div class="why-reason">Industry standard secrets management used in production enterprise environments. No credentials ever touch a config file or repository. Initialized with a single unseal key for homelab simplicity, auto-unsealing on reboot via a dedicated systemd service.</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>prometheus + grafana</code></div>
+        <div class="why-reason">The de facto standard observability stack. Grafana dashboard ID 1860 gives instant Node Exporter visualization across every LXC with zero manual configuration. The same stack used in production at companies running Kubernetes at scale.</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>loki</code></div>
+        <div class="why-reason">Made by the Grafana team so it integrates natively without any plugins or adapters. Significantly lighter than running a full ELK stack on 8GB of RAM. Promtail agents on each LXC ship logs with job labels for filtering by service.</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>lxc</code> <span style="color:var(--muted);font-size:0.72rem;font-family:var(--mono)">not docker</span></div>
+        <div class="why-reason">LXCs are full OS containers with systemd, init systems, and persistent state. Better for long-running services than Docker containers which are designed for ephemeral workloads. Proxmox's clone-from-template workflow is faster and more consistent than Dockerfiles for this use case.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 03 Cheap ── -->
+    <h2 id="cheap"><span class="num">03 —</span> Let's Be Cheap About It</h2>
+
+    <p>
+      The entire empire runs on an <strong>HP EliteDesk 705 G3 Mini</strong> — a little corporate
+      desktop I bought off eBay for <strong>$70</strong>. Some company decommissioned it, wiped the
+      asset tag, and shipped it out still running Windows 10 Pro. The first thing I did was flatten it.
+      Seventy dollars. Less than the friend was about to spend on a single year of Hostinger. That
+      number mattered to me, because the whole argument was that the "expensive convenient option"
+      wasn't actually buying you much.
+    </p>
+
+    <!-- IMG SLOT 05 -->
+    <figure class="shot" data-file="../assets/img/elite_desktop.jpg">
+      <div class="shot-head"><span class="dot"></span> image_placeholder
+        <span class="file">assets/img/elite_desktop.jpg</span></div>
+      <div class="shot-body">
+        <span class="shot-note"><span class="glyph">📦</span><br>
+          <b>SHOT LIST:</b> Hero photo of the actual HP EliteDesk 705 G3 Mini. Shoot it on a
+          desk with decent light — ideally next to something for scale (a coffee mug, a hand).
+          A second optional shot: the unit opened up showing the single SO-DIMM. Make it feel
+          like "this tiny thing runs all of that."</span>
+      </div>
+      <figcaption>The whole data center: an HP EliteDesk 705 G3 Mini, $70 off eBay.</figcaption>
+    </figure>
+    <!-- GO LIVE: <div data-viewer="../assets/img/elite_desktop.jpg" data-caption="The HP EliteDesk 705 G3 Mini — $70 off eBay"></div> -->
+
+    <div class="callout success">
+      <strong>Hardware Specs</strong>
+      HP EliteDesk 705 G3 Mini · AMD APU · 4 cores · 8GB DDR4-2400 · 210GB SSD · ~10–15W idle power draw
+    </div>
+
+    <p>
+      The RAM has earned the right to its own paragraph, because it nearly broke me before I'd
+      installed a single service. I started with two mismatched SO-DIMMs I had lying around — an 8GB
+      DDR4-2666 and a 16GB DDR4-3200 — figuring more is more. The EliteDesk disagreed, loudly and
+      silently at the same time. The 16GB stick refused to POST on its own. No beep, no message, just
+      a black screen and me staring into the BIOS like it owed me an explanation. After enough
+      digging I found out the board is validated for DDR4-2400 specifically and is genuinely picky
+      about anything outside its blessed list.
+    </p>
+
+    <p>
+      So I built the entire thing on a single 8GB stick while I hunted for a proper match. Which
+      brings us to the most expensive line item in the project — and the most satisfying. After they
+      lost the bet, the group had to chip in and buy me a <strong>matching 8GB DDR4-2400 SO-DIMM</strong>.
+      Street price: about <strong>$15</strong> on eBay.
+    </p>
+
+    <p>
+      Fifteen dollars. That was the agreed-upon cost of losing a tech bet to the friend who built a
+      better server than the thing you were about to pay a company for. Apparently that's what dignity
+      goes for these days, and they paid it without much of a fight.
+    </p>
+
+    <p>
+      Total hardware cost, RAM included: <strong>$85</strong> — once. The Hostinger plan they were
+      ready to buy costs more than that <em>every year</em>. We're not going to dwell on the return
+      on investment here. This was never about ROI. It was about principle, and the principle won.
+    </p>
+
+    <div class="divider"></div>
+
+    <!-- ── 04 Methodology ── -->
+    <h2 id="methodology"><span class="num">04 —</span> DevSecOps Methodology</h2>
+
+    <p>
+      Here's where I made a decision that turned a weekend project into something I'd actually put
+      my name on. Before I touched a single config file, I mapped the whole build to the
+      <strong>DoD DevSecOps Fundamentals Guidebook: Tools &amp; Activities (v2.0, March 2021)</strong>.
+      It's an unclassified, publicly available document that breaks a software lifecycle into eight
+      phases and spells out the security activities expected at each one. It was written for Department
+      of Defense programs, but the framework is honestly just a clean description of how mature
+      software delivery works anywhere.
+    </p>
+
+    <p>
+      I did this on purpose. Most homelab writeups end at "I installed it and it worked," and that's
+      fine — but it's a story about a tool, not about an engineer. I wanted to force myself to justify
+      every component against a real, externally-defined standard. If a piece of this build couldn't
+      be tied to an actual phase of a real framework, that was a signal I was adding it for vanity. The
+      framework became my filter for taste.
+    </p>
+
+    <!-- IMG SLOT 06 -->
+    <figure class="shot" data-file="../assets/img/devsec_ops_framework.png">
+      <div class="shot-head"><span class="dot"></span> image_placeholder
+        <span class="file">assets/img/devsec_ops_framework.png</span></div>
+      <div class="shot-body">
+        <span class="shot-note"><span class="glyph">📐</span><br>
+          <b>SHOT LIST:</b> The eight-phase DoD DevSecOps lifecycle figure (Plan → Develop →
+          Build → Test → Release &amp; Deliver → Deploy → Operate → Monitor). Either screenshot
+          the figure from the v2.0 guidebook PDF, or — better for originality — redraw it in
+          the site's terminal palette so it visually matches the rest of the post.</span>
+      </div>
+      <figcaption>DoD DevSecOps Fundamentals Guidebook — Tools &amp; Activities v2.0.</figcaption>
+    </figure>
+    <!-- GO LIVE: <div data-viewer="../assets/img/devsec_ops_framework.png" data-caption="DoD DevSecOps Fundamentals Guidebook — Tools & Activities v2.0"></div> -->
+
+    <div class="callout info">
+      <strong>DoD Framework Reference</strong>
+      Eight phases: Plan → Develop → Build → Test → Release &amp; Deliver → Deploy → Operate → Monitor.
+      Security is woven through every phase via continuous feedback loops, not bolted on at the end.
+      The framework mandates SIEM/SOAR integration at every phase — a requirement that directly shaped
+      the observability stack in this build.
+    </div>
+
+    <p>The principles I carried straight out of the framework and into the build:</p>
+
+    <ul>
+      <li><strong>Zero Trust Architecture</strong> — a perimeter is not a security model; access gets verified at every layer, every time</li>
+      <li><strong>SIEM/logging integration</strong> from the first phase, not duct-taped on after something breaks</li>
+      <li><strong>Runtime defense</strong> and vulnerability management treated as baseline requirements, not stretch goals</li>
+      <li><strong>Infrastructure as Code</strong> so every deployment is reproducible, auditable, and reversible</li>
+      <li><strong>Secrets management</strong> — no hardcoded credentials, ever, in any file, no exceptions</li>
+      <li><strong>Immutable infrastructure</strong> — services get rebuilt from templates, not hand-patched in place</li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <!-- ── 05 Plan ── -->
+    <h2 id="plan"><span class="num">05 —</span> Plan Phase — Architecture Design</h2>
+
+    <p>
+      The Plan phase is about thinking before typing — system design, threat modeling, configuration
+      management, tool selection. In practice that meant I drew the entire network topology before I
+      ran a single command. It's tempting to skip this part because it produces nothing you can show
+      off. But every hour I spent on the whiteboard up front saved me several hours of tearing
+      something down later. The shape of the system is the one decision that's expensive to change
+      after the fact.
+    </p>
+
+    <h3>Core Design Decisions</h3>
+
+    <div class="phase">
+      <div class="plbl">Decision 01 — LXC Containers Over VMs</div>
+      <p>
+        Proxmox runs both full virtual machines and LXC containers. A full VM ships its own kernel,
+        its own OS overhead, and emulated hardware — the right tool when you need hard isolation or a
+        different kernel. LXCs share the host kernel and lean on Linux namespaces and cgroups for
+        separation instead. They boot in milliseconds, sip RAM, and clone from a template in seconds.
+      </p>
+      <p>
+        For what I needed — eight long-running Linux services living on one modest machine — LXCs were
+        the obvious call. Each service still gets its own filesystem, process space, network interface,
+        and user account, but without paying the full-VM tax eight times over. This also lines up neatly
+        with the DoD's idea of "immutable infrastructure from master images": the base template is the
+        master image, and every container is just a clone of it.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Decision 02 — Isolated Internal Network</div>
+      <p>
+        Every LXC lives on a private Linux bridge (<code>vmbr1</code>, <code>10.10.10.0/24</code>)
+        that is completely walled off from the home LAN (<code>192.168.4.0/24</code>). The Proxmox
+        host plays NAT gateway — containers can reach out to the internet through it, but nothing on
+        the home network or the open internet can reach in to them directly.
+      </p>
+      <p>
+        Access to individual services is granted through iptables PREROUTING rules scoped exclusively
+        to the Tailscale interface (<code>tailscale0</code>). The practical effect is strict: only a
+        device authenticated to my Tailnet can touch any service at all. Someone sitting on my home
+        WiFi — even a guest, even a compromised IoT device — cannot reach Gitea, Vault, or Grafana,
+        because the traffic never arrives on the interface those rules listen to.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Decision 03 — Tailscale for Zero-Trust Access</div>
+      <p>
+        I had two options for remote access: poke holes in the home router and hope IP allowlisting
+        was enough, or build an authenticated mesh. I chose the mesh. Tailscale stands up a
+        WireGuard-based network where every device is cryptographically identified before it can talk
+        to anything. NAT traversal means I never forwarded a single port on the router — as far as the
+        ISP and the home network are concerned, none of this traffic exists.
+      </p>
+      <p>
+        The access rules enforce least privilege by design: I get every management port; friends get
+        25565 and nothing else. That policy lives in Tailscale's grants JSON, version-controlled
+        right alongside the rest of the infrastructure, so the access model is reviewable history
+        instead of tribal knowledge in my head.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Decision 04 — Velocity Proxy as the Entry Point</div>
+      <p>
+        I never wanted players connecting straight to a game server. Velocity sits in front as a
+        reverse proxy: players connect to it, and it decides which backend PaperMC node to hand them
+        to. That single layer buys me load balancing, one consistent place to handle authentication,
+        and the ability to pull a backend out for maintenance without kicking everyone offline. The
+        backends themselves run in offline mode and trust Velocity to have done the Mojang auth — a
+        trust that's enforced cryptographically by a shared forwarding secret the backends check on
+        every single connection.
+      </p>
+    </div>
+
+    <h3>Threat Model</h3>
+    <p>
+      Yes, I threat-modeled a Minecraft server, and no, I'm not embarrassed about it — the Plan phase
+      explicitly calls for it, and the discipline is the entire point. Here are the attack surfaces I
+      identified and what each one is mitigated by:
+    </p>
+    <ul>
+      <li><strong>Unauthenticated access to Proxmox management (port 8006)</strong> — mitigated: reachable only over Tailscale, locked to the <code>tailscale0</code> interface by iptables</li>
+      <li><strong>Credential exposure via hardcoded secrets</strong> — mitigated: HashiCorp Vault KV-v2, with no credentials living in any config file or repo</li>
+      <li><strong>Lateral movement between containers</strong> — mitigated: isolated <code>vmbr1</code> bridge with no inter-LXC routing by default</li>
+      <li><strong>Privilege escalation via service accounts</strong> — mitigated: unprivileged LXCs plus a dedicated non-root user per service</li>
+      <li><strong>Friends reaching admin interfaces</strong> — mitigated: Tailscale ACL grants restrict <code>group:friends</code> to port 25565 only</li>
+      <li><strong>Backend spoofing past Velocity</strong> — mitigated: modern forwarding secret; backends reject any connection without it</li>
+      <li><strong>World corruption during failover</strong> — mitigated: the custom write-lock system, which guarantees only one node ever holds write access</li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <!-- ── 06 Develop ── -->
+    <h2 id="develop"><span class="num">06 —</span> Develop Phase — Infrastructure as Code</h2>
+
+    <p>
+      The Develop phase has a simple rule that changes everything: your infrastructure configuration
+      lives in version control, and changes go through review before they merge. So every config file
+      in this project — Velocity's settings, PaperMC's properties, Prometheus scrape configs, the
+      Gitea Actions workflow itself — lives in a self-hosted Gitea repository called
+      <code>minecraft-infra</code>. Nothing is configured by hand on a live box and forgotten.
+    </p>
+
+    <p>
+      The payoff is that infrastructure becomes something you can read, review, and roll back. A bad
+      change isn't a mystery I have to reconstruct from memory at 2am — it's a diff. And because it's
+      all in Git, the CI/CD pipeline gets to inspect every change before it ever reaches a running
+      service, which is exactly the continuous feedback loop the framework is asking for.
+    </p>
+
+    <pre><code>minecraft-infra/
+├── velocity/
+│   └── velocity.toml          # Proxy config — player routing, forwarding mode
+├── minecraft/
+│   ├── server.properties      # Game server settings — port, gamemode, etc
+│   └── paper-global.yml       # PaperMC security — Velocity forwarding secret
+├── ansible/
+│   └── deploy.yml             # IaC provisioning playbook
+└── .gitea/workflows/
+    └── validate.yml           # CI/CD pipeline — validate then deploy</code></pre>
+
+    <div class="callout info">
+      <strong>Gitea Actions Runner</strong>
+      A self-hosted gitea-runner v1.0.3 executes the pipeline on every push. The runner runs directly
+      on the Gitea LXC (<code>10.10.10.30</code>) labeled <code>debian-latest</code>. No external CI
+      service, no GitHub dependency — the entire pipeline is self-contained on the homelab.
+    </div>
+
+    <p>
+      The deploy stage authenticates to the Proxmox host with an SSH key stored as a Gitea Actions
+      secret (<code>DEPLOY_KEY</code>) — never committed, never in the repo. From there it uses
+      <code>pct push</code> to drop updated configs straight into the target container filesystems and
+      restart the affected services. Start to finish, a <code>git push</code> becomes a deployed,
+      running config change in under two minutes, and every step of it is recorded in the run history.
+    </p>
+
+    <div class="divider"></div>
+
+    <!-- ── 07 Build ── -->
+    <h2 id="build"><span class="num">07 —</span> Build Phase — Configuration &amp; Security Validation</h2>
+
+    <p>
+      The Build phase calls for static analysis and dependency scanning as baseline, non-negotiable
+      capabilities. There's no compiled code in an infrastructure repo, so I translated that
+      requirement into the version that actually fits: automated config validation and secret scanning
+      on every commit, before anything is allowed near production. Same spirit, right tool for the
+      medium.
+    </p>
+
+    <p>
+      The pipeline runs four gates in order. If any gate fails, the deploy never happens — the broken
+      change simply doesn't ship.
+    </p>
+
+    <div class="phase">
+      <div class="plbl">Gate 01 — TOML Syntax Validation</div>
+      <p>
+        Validates <code>velocity.toml</code> with Python's <code>toml</code> library. A malformed TOML
+        file is a genuinely nasty failure: Velocity won't start at all, and it tells you why with a
+        parser error that means nothing to a human. I'd rather catch that on a commit, for free, than
+        discover it when the server is supposed to be live and four people are waiting in a Discord
+        call.
+      </p>
+      <pre><code>python3 -c "
+import toml, sys
+try:
+    toml.load('velocity/velocity.toml')
+    print('velocity.toml is valid')
+except Exception as e:
+    print(f'ERROR: {e}')
+    sys.exit(1)
+"</code></pre>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Gate 02 — Secret Scanning</div>
+      <p>
+        Greps every config file for patterns that look like a hardcoded password, token, or key. It
+        deliberately ignores empty fields (like <code>rcon.password=</code>) and skips the
+        <code>.gitea/</code> directory so the scanner doesn't flag itself. This is the homelab-scale
+        version of the framework's requirement for repository security tooling in the Develop phase —
+        the same idea as a commercial secret scanner, just honest about its size.
+      </p>
+      <pre><code>if grep -RniE "password=.+|secret=.+" . \
+  --include="*.toml" \
+  --include="*.properties" \
+  --exclude-dir=".git" \
+  --exclude-dir=".gitea" \
+  | grep -v "password=$" \
+  | grep -v "rcon.password=$"; then
+  echo "WARNING: Possible hardcoded secrets found"
+fi</code></pre>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Gate 03 — Default Credential Detection</div>
+      <p>
+        Hard-fails the pipeline the moment it finds a known default credential —
+        <code>password=changeme</code>, <code>password=admin</code>, <code>password=password</code>.
+        It's an almost insultingly simple check, and it catches the single most common way people get
+        owned. Simple and effective beats clever and unused.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Gate 04 — Automated Deploy</div>
+      <p>
+        Once everything above is green, the deploy job runs on its own. It SSHes into the Proxmox host
+        with the stored deploy key, pushes the updated configs into the right containers with
+        <code>pct push</code>, and restarts only the services that changed. Every run is logged in
+        Gitea's Actions history, so there's always a paper trail of what shipped and when.
+      </p>
+      <pre><code>ssh -i ~/.ssh/deploy_key root@$PROXMOX_HOST \
+  "pct push 101 /tmp/velocity.toml /opt/velocity/velocity.toml && \
+   pct exec 101 -- systemctl restart velocity"</code></pre>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 08 Core Cluster ── -->
+    <h2 id="core"><span class="num">08 —</span> Building the Core Cluster</h2>
+
+    <p>
+      With the architecture settled, the actual build turned into a rhythm. Every container followed
+      the exact same recipe: clone the base template, pin a static IP on <code>vmbr1</code>, install
+      the service, create a dedicated non-root user, write a systemd unit, enable and start. The same
+      eight steps, eight times. Boring is good here — boring means reproducible, and reproducible is
+      the whole point of the Develop and Deploy phases.
+    </p>
+
+    <h3>Base LXC Template</h3>
+    <p>
+      It all starts from one Debian 12 (Bookworm) container I built once and never touch casually.
+      I updated it, installed both Java 21 and Java 25 from the
+      <a href="https://adoptium.net/temurin/releases/" target="_blank" rel="noopener">Eclipse Temurin repository</a>,
+      added the common tooling I always reach for (curl, wget, git, nano, net-tools), and then froze
+      it into a Proxmox template. Every other container in the cluster is a full clone of that single
+      golden image — which means every node starts life identical, and "rebuild it" is a thirty-second
+      operation instead of an afternoon.
+    </p>
+
+    <pre><code># Add Temurin repo and install both Java versions
+apt install -y gnupg apt-transport-https
+wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add -
+echo "deb https://packages.adoptium.net/artifactory/deb bookworm main" \
+  | tee /etc/apt/sources.list.d/adoptium.list
+apt update
+apt install -y temurin-21-jre temurin-25-jre
+
+# Convert to template after setup
+pct template 100</code></pre>
+
+    <h3>Network Isolation Setup</h3>
+    <p>
+      The isolated network is just a second bridge defined in the host's
+      <code>/etc/network/interfaces</code>, paired with NAT masquerade rules. The bridge has no
+      physical port attached to it — it's a pure software switch that only the containers plug into.
+      The host is their default gateway and their NAT router for anything that needs to reach the
+      outside world.
+    </p>
+
+    <pre><code>auto vmbr1
+iface vmbr1 inet static
+    address 10.10.10.1/24
+    bridge-ports none
+    bridge-stp off
+    bridge-fd 0
+    post-up echo 1 > /proc/sys/net/ipv4/ip_forward
+    post-up iptables -t nat -A POSTROUTING -s 10.10.10.0/24 -o vmbr0 -j MASQUERADE
+    post-down iptables -t nat -D POSTROUTING -s 10.10.10.0/24 -o vmbr0 -j MASQUERADE</code></pre>
+
+    <h3>Service Users — No Root Services</h3>
+    <p>
+      Not one service in this cluster runs as root. Every single one gets its own dedicated non-root
+      system user, and the systemd <code>User=</code> directive drops privileges before the process
+      even starts. This is the cheapest, highest-leverage security decision in the entire build: if
+      something does get popped, the attacker lands as <code>minecraft</code> or <code>gitea</code>
+      with that user's narrow permissions — not as root with the keys to the host.
+    </p>
+
+    <pre><code>[Unit]
+Description=Minecraft Server
+After=network.target
+
+[Service]
+User=minecraft
+WorkingDirectory=/opt/minecraft
+ExecStart=/usr/bin/java -Xms1G -Xmx2G -jar server.jar nogui
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+    <p>
+      The same shape repeats everywhere: <code>User=velocity</code>, <code>User=gitea</code>,
+      <code>User=vault</code>, <code>User=prometheus</code>, <code>User=loki</code>,
+      <code>User=promtail</code>. No exceptions, no "just this once."
+    </p>
+
+    <h3>Velocity Proxy Configuration</h3>
+    <p>
+      Velocity stands in front of both Minecraft nodes and owns player routing, load balancing, and
+      the modern forwarding handshake. The setting everything hinges on is
+      <code>player-info-forwarding-mode = "modern"</code>, which switches on Velocity's cryptographic
+      forwarding-secret handshake with the backends.
+    </p>
+
+    <p>
+      That secret is a random string that Velocity and every PaperMC backend must agree on. A backend
+      configured for Velocity forwarding will flatly reject any connection that doesn't present the
+      right secret — which is exactly what stops a curious friend from skipping the proxy and dialing
+      a backend node directly.
+    </p>
+
+    <div class="callout warning">
+      <strong>The Hardest Part of This Whole Build</strong>
+      The trap is that Velocity and PaperMC have to agree across three separate files, and getting any
+      one wrong fails <em>silently</em>. <code>player-info-forwarding-mode</code> in
+      <code>velocity.toml</code> must be <code>"modern"</code>. <code>velocity.enabled</code> in
+      <code>paper-global.yml</code> must be <code>true</code>. <code>online-mode</code> in
+      <code>server.properties</code> must be <code>false</code>. And the forwarding secret in both
+      files has to match character-for-character. Miss one and Velocity just drops connections with no
+      useful error anywhere. I lost hours here. What finally fixed it wasn't the documentation — it was
+      reading the actual source to see what the handshake expected.
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 09 Deploy ── -->
+    <h2 id="deploy"><span class="num">09 —</span> Deploy Phase — Running Minecraft in Containers</h2>
+
+    <p>
+      The Deploy phase is about how artifacts actually get out the door — provisioning, deployment,
+      and the scanning that happens right after. My deployment model is immutable: to update a
+      Minecraft node, I don't patch the running one, I clone the template, configure the clone, and
+      swap it in behind Velocity. The old node hangs around as a snapshot until the new one has proven
+      itself healthy. If the new one misbehaves, rolling back is just pointing Velocity at the old box
+      again.
+    </p>
+
+    <p>The repeatable workflow for bringing a new node online:</p>
+
+    <ul>
+      <li>Clone the base template: <code>pct clone 100 102 --hostname minecraft-1 --full</code></li>
+      <li>Pin a static IP on vmbr1: <code>pct set 102 --net0 name=eth0,bridge=vmbr1,ip=10.10.10.20/24</code></li>
+      <li>Start it, then configure Java, PaperMC, and the forwarding secret</li>
+      <li>Create the <code>minecraft</code> system user and set ownership</li>
+      <li>Install the systemd service, enable it, start it</li>
+      <li>Register the node in Velocity's <code>[servers]</code> block and <code>try</code> list</li>
+      <li>Add it to the Prometheus scrape config</li>
+      <li>Install the Node Exporter and Promtail agents</li>
+    </ul>
+
+    <h3>iptables Port Forwarding</h3>
+    <p>
+      Because the containers sit on an isolated network, the host has to deliberately forward each
+      exposed port from the Tailscale interface to the right container. The crucial detail is that
+      every rule is scoped to <code>tailscale0</code>. Traffic arriving on any other interface — the
+      home LAN, say — simply isn't forwarded. That one scoping decision is what keeps a device on the
+      home WiFi from ever reaching an admin service.
+    </p>
+
+    <pre><code># Players (and admin) reach Velocity via Tailscale
+iptables -t nat -A PREROUTING -i tailscale0 -p tcp \
+  --dport 25565 -j DNAT --to-destination 10.10.10.10:25565
+
+# Admin only — Gitea source control
+iptables -t nat -A PREROUTING -i tailscale0 -p tcp \
+  --dport 3000 -j DNAT --to-destination 10.10.10.30:3000
+
+# Admin only — HashiCorp Vault
+iptables -t nat -A PREROUTING -i tailscale0 -p tcp \
+  --dport 8200 -j DNAT --to-destination 10.10.10.40:8200
+
+# Admin only — Grafana dashboards
+iptables -t nat -A PREROUTING -i tailscale0 -p tcp \
+  --dport 3001 -j DNAT --to-destination 10.10.10.50:3000
+
+# Admin only — Prometheus
+iptables -t nat -A PREROUTING -i tailscale0 -p tcp \
+  --dport 9090 -j DNAT --to-destination 10.10.10.50:9090
+
+# NAT for LXC outbound internet access
+iptables -t nat -A POSTROUTING -s 10.10.10.0/24 -o vmbr0 -j MASQUERADE</code></pre>
+
+    <div class="divider"></div>
+
+    <!-- ── 10 Failover ── -->
+    <h2 id="failover"><span class="num">10 —</span> Failover &amp; Write-Lock System</h2>
+
+    <p>
+      This is the part of the build I'm proudest of, and it's the part nobody asked for — which is
+      probably why I enjoyed it most. Running two Minecraft nodes behind Velocity is easy. Letting
+      them share one world without quietly destroying it is the actual engineering problem, and it's
+      the kind of problem you only discover by trying the naive thing first.
+    </p>
+
+    <h3>The Problem</h3>
+    <p>
+      Minecraft writes a <code>session.lock</code> file into the world directory specifically to stop
+      two server processes from writing the same world at once. Point both nodes at the same world
+      folder and let them both write, and you don't get redundancy — you get corruption. So the real
+      constraint is: only one node may hold write access at any moment, <em>and</em> there has to be a
+      reliable way to hand that access off the instant the active node falls over.
+    </p>
+
+    <h3>The Solution — Shared Mount + Write-Lock Watchdog</h3>
+    <p>
+      The world data lives once, on the Proxmox host at <code>/mnt/minecraft-world</code>, and gets
+      bind-mounted into both containers:
+    </p>
+
+    <pre><code># Mount shared world into both LXCs
+pct set 102 --mp0 /mnt/minecraft-world,mp=/opt/minecraft/world
+pct set 106 --mp0 /mnt/minecraft-world,mp=/opt/minecraft/world
+
+# Ownership mapped to minecraft user UID in LXC (100999 on host)
+chown -R 100999:100999 /mnt/minecraft-world
+chmod -R 775 /mnt/minecraft-world</code></pre>
+
+    <p>
+      On top of the shared mount, a custom watchdog daemon runs on the host and arbitrates a single
+      lock file (<code>/mnt/minecraft-world/.writelock</code>) that records which node currently owns
+      write access. The whole failover dance moves through four clean states:
+    </p>
+
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="lbl">State 1 — Normal</div>
+        <div class="nm">minecraft-1 ON · minecraft-2 IDLE</div>
+        <div class="ds">Lock held by 102. minecraft-2 is stopped. Players on minecraft-1.</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">State 2 — Failover</div>
+        <div class="nm">minecraft-1 DEAD · minecraft-2 TURNS ON</div>
+        <div class="ds">Watchdog detects 102 is down, releases lock, starts minecraft-2, acquires lock for 106.</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">State 3 — Recovery</div>
+        <div class="nm">minecraft-1 TURNS ON · minecraft-2 ON</div>
+        <div class="ds">Watchdog detects 102 is back. Both briefly running. Waiting 30s for 102 to fully start.</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">State 4 — Handback</div>
+        <div class="nm">minecraft-1 ON · minecraft-2 IDLE</div>
+        <div class="ds">Lock returned to 102. minecraft-2 stopped. Back to normal state.</div>
+      </div>
+    </div>
+
+    <pre><code>#!/bin/bash
+# mc-watchdog — runs as a systemd service on the Proxmox host
+LOCKFILE=/mnt/minecraft-world/.writelock
+
+node_alive() {
+  pct exec $1 -- systemctl is-active minecraft &>/dev/null
+}
+
+while true; do
+  OWNER=$(cat $LOCKFILE 2>/dev/null)
+
+  # minecraft-1 is primary and dies — start minecraft-2
+  if [ "$OWNER" = "102" ] && ! node_alive 102; then
+    mc-lock release 102
+    pct exec 106 -- systemctl start minecraft
+    sleep 30
+    mc-lock acquire 106
+    log "FAILOVER: minecraft-1 died — minecraft-2 acquired lock"
+
+  # minecraft-2 active and minecraft-1 recovers — hand back
+  elif [ "$OWNER" = "106" ] && node_alive 102; then
+    sleep 30
+    mc-lock release 106
+    mc-lock acquire 102
+    pct exec 106 -- systemctl stop minecraft
+    log "HANDBACK: lock returned to minecraft-1 — minecraft-2 now idle"
+  fi
+
+  sleep 10
+done</code></pre>
+
+    <p>
+      The watchdog itself runs as a systemd service with <code>Restart=always</code>, so it survives
+      host reboots and never silently dies on me. A full failover — from minecraft-1 dropping dead to
+      minecraft-2 being live with write access — takes roughly 30–40 seconds, most of which is just
+      waiting for a JVM to finish booting. The handback runs about 40 seconds the other direction.
+      It's not instant, and later I'll be honest about why that trade-off exists.
+    </p>
+
+    <!-- IMG SLOT 07 -->
+    <figure class="shot" data-file="../assets/img/watchdog_log.png">
+      <div class="shot-head"><span class="dot"></span> image_placeholder
+        <span class="file">assets/img/watchdog_log.png</span></div>
+      <div class="shot-body">
+        <span class="shot-note"><span class="glyph">📜</span><br>
+          <b>SHOT LIST (optional but strong):</b> A terminal screenshot of
+          <code>cat /var/log/mc-watchdog.log</code> showing a real
+          acquire → FAILOVER → HANDBACK cycle with timestamps. This is hard proof the system
+          actually fired, not just a diagram. Keep the terminal in the site's purple theme if
+          you can.</span>
+      </div>
+      <figcaption>The watchdog log — a real failover and handback, captured live.</figcaption>
+    </figure>
+    <!-- GO LIVE: <div data-viewer="../assets/img/watchdog_log.png" data-caption="mc-watchdog.log — a live failover/handback cycle"></div> -->
+
+    <div class="callout success">
+      <strong>Tested and Verified</strong>
+      The watchdog log shows three complete failover/handback cycles from live testing:
+      14:10:34 acquired by minecraft-1 → 14:15:09 FAILOVER to minecraft-2 →
+      14:21:18 HANDBACK to minecraft-1. The cycle repeats indefinitely.
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 11 Test ── -->
+    <h2 id="test"><span class="num">11 —</span> Test Phase — Failure &amp; Resilience Testing</h2>
+
+    <p>
+      The Test phase covers acceptance testing, performance testing, and hands-on security testing.
+      For me it meant something more fun: deliberately breaking my own work to find out whether it
+      recovered the way I claimed it would. A failover system you've never actually triggered is just
+      a hopeful comment in a script. So I triggered all of it.
+    </p>
+
+    <div class="phase">
+      <div class="plbl">Test 01 — Remote Access Verification</div>
+      <p>
+        Confirmed the Proxmox web UI (<code>100.107.12.47:8006</code>) came up over Tailscale on
+        T-Mobile 5G with home WiFi fully disabled. Connection established in under two seconds. There
+        are zero port-forwarding rules on the home router, and the ISP has no visibility into any of
+        that management traffic — it's all riding an authenticated WireGuard tunnel.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Test 02 — Cross-Continental Connectivity</div>
+      <p>
+        The real-world test: my friend <strong>stationed in Qatar</strong> connected through
+        Tailscale and played. No meaningful latency, no rubber-banding, no chunk-loading stalls, no
+        timeouts. Tailscale's NAT traversal and WireGuard's lean protocol absorbed the geographic
+        distance well enough that it felt like he was on the same couch. This was the moment the bet
+        was effectively over.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Test 03 — Access Control Enforcement</div>
+      <p>
+        Verified that friends could reach 25565 over Tailscale but got refused on 8006, 3000, 8200,
+        and 9090. The ACL grants behave exactly as written — a friend pointing a browser at the
+        Proxmox UI doesn't get a login page or even a hanging timeout, just an immediate refusal,
+        because the door isn't open to them in the first place.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Test 04 — Systemd Service Recovery</div>
+      <p>
+        Tested <code>Restart=always</code> the blunt way: <code>kill -9</code> on the Minecraft Java
+        process. Systemd noticed the exit within a second and relaunched the service; the server was
+        back online inside ~90 seconds counting world load. Velocity's
+        <code>failover-on-unexpected-server-disconnect = true</code> covered the gap.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Test 05 — Write-Lock Failover Cycle</div>
+      <p>
+        Stopped minecraft-1 with <code>pct exec 102 -- systemctl stop minecraft</code> while tailing
+        the watchdog log in real time. Within 10 seconds the watchdog saw the outage; within 40 it had
+        started minecraft-2, transferred the lock, and put the node into service. I then restarted
+        minecraft-1 and watched the full handback complete cleanly. Ran the whole cycle three times to
+        make sure it wasn't luck.
+      </p>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Test 06 — CI/CD Pipeline Validation</div>
+      <p>
+        Pushed a deliberately broken <code>velocity.toml</code> to confirm the pipeline would protect
+        me from myself. It caught the syntax error in the validation stage and refused to deploy.
+        Fixed it, pushed again, watched it pass every gate and auto-deploy the corrected config to the
+        velocity-proxy container with a service restart. The guardrail works.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 12 Operate ── -->
+    <h2 id="operate"><span class="num">12 —</span> Operate Phase — Backups &amp; Reliability</h2>
+
+    <p>
+      The Operate phase is the unglamorous part — scaling, balancing, backups, and all the small
+      decisions that decide whether a server is still up six months from now. Proxmox does a lot of
+      the heavy lifting: snapshots give me point-in-time recovery, and because every node is just a
+      clone of the template, rebuilding one from scratch is a five-minute job rather than a crisis.
+    </p>
+
+    <h3>Sleep Prevention</h3>
+    <p>
+      Here's a lesson the EliteDesk taught me the hard way: it's a business desktop, and business
+      desktops are built to go to sleep. For a 24/7 server, that default is a silent killer — the
+      machine just nods off and takes everyone offline. So I permanently masked every sleep and
+      suspend target and told it to ignore the power button and lid switch entirely.
+    </p>
+
+    <pre><code>systemctl mask sleep.target suspend.target \
+  hibernate.target hybrid-sleep.target
+
+# Ignore power button and lid switch
+sed -i 's/#HandlePowerKey=poweroff/HandlePowerKey=ignore/' \
+  /etc/systemd/logind.conf
+systemctl restart systemd-logind</code></pre>
+
+    <h3>CPU Power Management</h3>
+    <p>
+      I set the <code>powersave</code> CPU governor so the machine sips power at idle but still scales
+      up under load. The result is a host that draws roughly <strong>10–15 watts</strong> when nobody's
+      playing — less than a light bulb. On a box that never turns off, that's not a vanity stat; it's
+      the difference between a server you forget about and an electricity bill you don't.
+    </p>
+
+    <h3>LXC Resource Allocation</h3>
+    <p>
+      Every container has a hard memory ceiling enforced by Proxmox cgroups, and I didn't guess at
+      those numbers — I tuned them against what Prometheus showed the services actually using.
+    </p>
+
+    <div class="why-table">
+      <div class="why-row">
+        <div class="why-tool"><code>minecraft-1</code></div>
+        <div class="why-reason">3072MB RAM · 2 vCPUs · Java heap 512MB–2GB</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>minecraft-2</code></div>
+        <div class="why-reason">3072MB RAM · 2 vCPUs · Java heap 1GB–2GB (only active during failover)</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>velocity-proxy</code></div>
+        <div class="why-reason">1024MB RAM · 1 vCPU · Java heap 128MB–512MB</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>gitea</code></div>
+        <div class="why-reason">1024MB RAM · 1 vCPU</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>vault</code></div>
+        <div class="why-reason">512MB RAM · 1 vCPU</div>
+      </div>
+      <div class="why-row">
+        <div class="why-tool"><code>monitoring</code></div>
+        <div class="why-reason">1024MB RAM · 1 vCPU · Prometheus + Grafana + Loki</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 13 Monitor ── -->
+    <h2 id="monitor"><span class="num">13 —</span> Monitor Phase — Observability &amp; Logging</h2>
+
+    <p>
+      The Monitor phase is where the framework stops being theoretical for most homelabs and where I
+      refused to cut corners. It calls for continuous monitoring, centralized logging, and alerting —
+      and it points at NIST SP 800-137, which defines continuous monitoring as keeping ongoing
+      awareness of security, vulnerabilities, and threats to support real risk decisions. The whole
+      stack on <code>10.10.10.50</code> exists to make that real rather than aspirational.
+    </p>
+
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="lbl">Metrics Collection</div>
+        <div class="nm">Prometheus</div>
+        <div class="ds">Scrapes Node Exporter from every LXC every 15 seconds — CPU, RAM, disk, network per container</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Log Shipping</div>
+        <div class="nm">Promtail</div>
+        <div class="ds">Agent running on every LXC, ships application and system logs to Loki with job labels</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Log Aggregation</div>
+        <div class="nm">Loki</div>
+        <div class="ds">Centralized log store queryable by job label — {job="velocity"}, {job="minecraft"}, etc</div>
+      </div>
+      <div class="stack-card">
+        <div class="lbl">Visualization</div>
+        <div class="nm">Grafana</div>
+        <div class="ds">Node Exporter Full dashboard (ID 1860) + Loki log explorer, accessible only via Tailscale</div>
+      </div>
+    </div>
+
+    <p>
+      Every container carries two agents. A <strong>Node Exporter</strong> exposes its system metrics
+      on port 9100, and a <strong>Promtail</strong> instance ships its logs to Loki tagged with a
+      service-specific job label — Velocity logs as <code>{job="velocity"}</code>, Minecraft logs as
+      <code>{job="minecraft", host="minecraft-1"}</code>, and so on down the line.
+    </p>
+
+    <p>
+      The thing that makes this feel genuinely production-grade is the query experience. In Grafana's
+      Loki explorer, typing <code>{job="velocity"}</code> surfaces every player join, every
+      disconnect, every routing decision, and every error as it happens. It's the exact same workflow
+      an on-call engineer uses to debug a real outage — just pointed at a Minecraft server instead of
+      a payment system.
+    </p>
+
+    <!-- IMG SLOT 08 -->
+    <figure class="shot" data-file="../assets/img/grafana.png">
+      <div class="shot-head"><span class="dot"></span> image_placeholder
+        <span class="file">assets/img/grafana.png</span></div>
+      <div class="shot-body">
+        <span class="shot-note"><span class="glyph">📊</span><br>
+          <b>SHOT LIST:</b> The live Grafana "Node Exporter Full" dashboard (ID 1860) with real
+          data — CPU, memory, disk, and network panels populated across the LXCs. Capture it while
+          a couple of people are actually playing so the graphs show movement. A second optional
+          shot: the Loki explorer mid-query on <code>{job="velocity"}</code>.</span>
+      </div>
+      <figcaption>Grafana — Node Exporter Full dashboard across every LXC.</figcaption>
+    </figure>
+    <!-- GO LIVE: <div data-viewer="../assets/img/grafana.png" data-caption="Grafana — Node Exporter Full dashboard showing all LXC metrics"></div> -->
+
+    <div class="callout success">
+      <strong>ISCM Mapping</strong>
+      Prometheus continuously inventories all system components via Node Exporter. Loki aggregates
+      and stores all application and system events. Grafana provides the visibility layer. This
+      stack maps directly to NIST SP 800-137 and the DoD Monitor phase requirements for operations
+      monitoring, log aggregation, log promotion, and automated alerting.
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 14 Security ── -->
+    <h2 id="security"><span class="num">14 —</span> Security Considerations (SecOps Layer)</h2>
+
+    <p>
+      Security in this build isn't a section I bolted on at the end — it's the thread running through
+      every previous one. But it's worth pulling the four load-bearing pieces into one place, because
+      together they're what let me call this "production-grade" with a straight face.
+    </p>
+
+    <h3>Zero Trust Networking</h3>
+    <p>
+      The Tailscale policy is strict least privilege, expressed as grants-based JSON kept in version
+      control. Two groups exist: <code>group:admins</code> with full access to every management port,
+      and <code>group:friends</code> limited to 25565 alone. A friend on the Tailnet can play all day
+      and never reach Proxmox, Gitea, Vault, or Grafana — knowing the IP addresses doesn't help them,
+      because the grant simply doesn't extend to those ports.
+    </p>
+
+    <pre><code>{
+  "hosts": { "proxmox": "100.107.12.47" },
+  "groups": {
+    "group:admins": ["robasaldana@github"],
+    "group:friends": ["friend@gmail.com"]
+  },
+  "grants": [
+    {
+      "src": ["group:admins"],
+      "dst": ["proxmox"],
+      "ip": ["tcp:22","tcp:8006","tcp:25565","tcp:3000","tcp:3001","tcp:8200","tcp:9090"]
+    },
+    {
+      "src": ["group:friends"],
+      "dst": ["proxmox"],
+      "ip": ["tcp:25565"]
+    }
+  ]
+}</code></pre>
+
+    <h3>Secrets Management with HashiCorp Vault</h3>
+    <p>
+      The Velocity forwarding secret, the RCON credentials, and anything else sensitive live in
+      Vault's KV-v2 engine under the <code>minecraft/</code> path. Not one of them sits in a config
+      file or a repo. Vault is initialized with a single unseal key — a deliberate homelab
+      simplification, not a production pattern — and auto-unseals after a reboot via a dedicated
+      systemd service that reads the key and calls <code>vault operator unseal</code> once the Vault
+      service is up.
+    </p>
+
+    <pre><code># Store secrets — never in config files
+vault secrets enable -path=minecraft kv-v2
+vault kv put minecraft/velocity forwarding-secret="..."
+vault kv put minecraft/rcon password="..."
+
+# Retrieve in pipeline using scoped token
+SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
+  http://10.10.10.40:8200/v1/minecraft/data/velocity \
+  | python3 -c "import sys,json; \
+    print(json.load(sys.stdin)['data']['data']['forwarding-secret'])")</code></pre>
+
+    <h3>Unprivileged Service Accounts</h3>
+    <p>
+      Every service — Minecraft, Velocity, Gitea, Vault, Prometheus, Grafana, Loki, Promtail — runs
+      as a dedicated non-root system user created with <code>useradd -r</code>, with systemd's
+      <code>User=</code> directive dropping privileges before the process starts. Compromise any one
+      of them and the attacker is boxed into that user's permissions, with no path to root short of a
+      separate privilege-escalation chain they'd have to find first.
+    </p>
+
+    <h3>Network Segmentation</h3>
+    <p>
+      The internal <code>10.10.10.0/24</code> network is invisible to the home LAN — the home router
+      has no idea it exists. iptables rules on the host scope all admin-service access to the
+      <code>tailscale0</code> interface, and traffic arriving on <code>vmbr0</code> from the home LAN
+      is never forwarded to any container service. Defense in depth: even if one layer were misread,
+      the next one still holds.
+    </p>
+
+    <h3>CI/CD Security Gates</h3>
+    <p>
+      The Gitea Actions pipeline is the control gate between a code change and production. No config
+      reaches a running service without clearing validation first. The deploy key lives as an Actions
+      secret, never in the repository, and the pipeline runs with the minimum it needs — push configs,
+      restart services, nothing more. It can't read secrets it doesn't need or touch systems outside
+      its job.
+    </p>
+
+    <div class="divider"></div>
+
+    <!-- ── 15 Results ── -->
+    <h2 id="results"><span class="num">15 —</span> Results — Did I Win the Bet?</h2>
+
+    <div class="result-banner">
+      <div class="big">Yes.</div>
+      <p>They bought me RAM. It cost them $15. The humiliation was complimentary.</p>
+    </div>
+
+    <p>
+      The server has been running continuously, hosting our group — including the friend in Qatar —
+      with no latency anyone complains about and smooth casual play throughout. Grafana confirms the
+      uptime, the watchdog log confirms the failover system fires when it should, and the CI/CD
+      pipeline has validated and shipped config changes on its own without me babysitting it. The
+      experience for the people playing is exactly what Hostinger promised: they connect, it works,
+      they don't think about it. Which was always the real bar to clear.
+    </p>
+
+    <p>
+      But the part that outlived the bet is this: a joke wager turned into a project that demonstrates
+      real DevSecOps competency, because every pattern here has a direct twin in industry. Proxmox is
+      a homelab vSphere. Tailscale ACLs are the same idea as Zscaler or Palo Alto policy. Gitea
+      Actions is Jenkins or GitHub Actions. Vault is CyberArk. Prometheus and Grafana are what Datadog
+      sells. Loki is a lean Splunk. I didn't simulate enterprise infrastructure — I built a small,
+      honest version of it, and had to solve the same problems it solves.
+    </p>
+
+    <p>
+      And the economics still land where the argument started: the Hostinger plan would have cost more
+      every year than this entire machine cost once. This runs indefinitely for the price of
+      electricity, and I own every layer of it.
+    </p>
+
+    <div class="skills">
+      <span class="skill g">Proxmox VE</span>
+      <span class="skill g">LXC Containers</span>
+      <span class="skill g">Tailscale Zero Trust</span>
+      <span class="skill g">Network Segmentation</span>
+      <span class="skill g">iptables NAT</span>
+      <span class="skill b">Gitea CI/CD</span>
+      <span class="skill b">HashiCorp Vault</span>
+      <span class="skill b">Infrastructure as Code</span>
+      <span class="skill b">Secrets Management</span>
+      <span class="skill b">SSH Deploy Keys</span>
+      <span class="skill p">Prometheus</span>
+      <span class="skill p">Grafana</span>
+      <span class="skill p">Loki + Promtail</span>
+      <span class="skill p">DoD DevSecOps Framework</span>
+      <span class="skill p">NIST SP 800-137</span>
+      <span class="skill g">Write-Lock Failover</span>
+      <span class="skill g">Shared World Storage</span>
+      <span class="skill b">Systemd Service Design</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ── 16 Limitations ── -->
+    <h2 id="limitations"><span class="num">16 —</span> Limitations &amp; Reality Check</h2>
+
+    <p>
+      A writeup that only lists wins is marketing, not engineering. So here's what this build does
+      <em>not</em> do well, and why I made peace with each trade-off in a homelab context. Naming your
+      own gaps is part of the discipline the framework is trying to teach.
+    </p>
+
+    <ul>
+      <li>
+        <strong>Single physical machine.</strong> Everything rides on one HP EliteDesk. If that
+        hardware dies, all of it dies at once. This is a homelab, not a data center — the real
+        enterprise answer is a Proxmox cluster across multiple nodes with Ceph shared storage, and
+        that costs many multiples of $85. I chose to be honest about the single point of failure
+        rather than pretend a one-box setup is highly available.
+      </li>
+      <li>
+        <strong>Backups are manual.</strong> The world lives on the shared host filesystem and
+        snapshots exist, but I take them by hand. A scheduled job with a real retention policy is a
+        known gap and the next thing on my list, not something I'll pretend is already done.
+      </li>
+      <li>
+        <strong>Vault unseal key on disk.</strong> Auto-unseal reads the key from a file on the host.
+        In production that would be a cloud KMS so the key never touches local disk. For a homelab,
+        behind Tailscale, on an access-controlled box, storing it locally is a trade-off I accept with
+        my eyes open.
+      </li>
+      <li>
+        <strong>Failover isn't instant.</strong> The watchdog polls every 10 seconds and the full
+        failover runs 30–40 seconds because minecraft-2 boots cold. Players see a brief disconnect in
+        that window. Making it seamless means keeping the second node warm at all times, which doubles
+        the memory footprint — and on 8GB, memory is the one thing I can't spend freely. Conscious
+        choice, not an oversight.
+      </li>
+      <li>
+        <strong>8GB caps the player count.</strong> At the current allocation, four players is the
+        comfortable ceiling. The matching stick from the bet takes the box to 16GB, which is what
+        actually expands the headroom — so the prize and the upgrade path happen to be the same $15.
+      </li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <!-- ── 17 Conclusion ── -->
+    <h2 id="conclusion"><span class="num">17 —</span> Conclusion</h2>
+
+    <p>
+      A $70 desktop. A late-night bet. A friend on the other side of the planet. And somehow, out the
+      other end, a production-grade DevSecOps homelab mapped to a DoD framework, with a custom
+      write-lock failover system and a real CI/CD pipeline holding it together.
+    </p>
+
+    <p>
+      But the Minecraft server was never really the point — it was the forcing function. The point is
+      that building this by hand, on real hardware, under real constraints, taught me things no
+      documentation ever could. The Velocity/PaperMC forwarding bug cost me hours precisely because no
+      error message would tell me what was wrong; I only fixed it by reading source. The iptables
+      duplicate-rule problem made me actually understand how PREROUTING chains get evaluated, not just
+      copy a command. The shared-world mount forced me to learn how unprivileged LXCs map user IDs onto
+      the host. None of that sticks when you click a button on a hosting panel. All of it sticks when
+      you have to make it work yourself.
+    </p>
+
+    <p>
+      You don't need a cloud budget or a rack of servers to practice real DevSecOps. You need a clear
+      methodology, the patience to read source code when the docs give up on you, and — ideally — a
+      friend who almost bought a Hostinger plan. The infrastructure was the deliverable. The learning
+      was the actual prize. The RAM was just a nice bonus.
+    </p>
+
+    <div class="callout success">
+      <strong>Find Me Online</strong>
+      GitHub: <a href="https://github.com/howeager" target="_blank" rel="noopener">github.com/howeager</a>
+      — infrastructure code for this project lives in the <code>minecraft-infra</code> repository.
+      CompTIA Security+ · Cal Poly Pomona CIS · CCDC Competitor · SOC Treasurer
+    </div>
+
+  </article>
+
+  <a href="../index.html" class="back">← Back to Terminal</a>
+
+</main>
+
+<footer>
+  <p>Written by Roberto Saldana · <a href="https://github.com/howeager" target="_blank" rel="noopener">howeager</a> · May 2026</p>
+  <p style="margin-top:0.4rem;font-size:0.7rem;">Built with an $85 homelab and spite.</p>
+</footer>
+
+<script src="../assets/js/viewer.js" defer></script>
+</body>
+</html>

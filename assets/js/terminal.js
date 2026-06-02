@@ -219,7 +219,7 @@
       iframe.src = url;
       viewerContent.appendChild(iframe);
 
-      btnPop.onclick = () => window.open(url, '_blank');
+      btnPop.href = new URL(url, window.location.href).href;
       btnClose.onclick = () => viewer.classList.remove('show');
       viewer.classList.add('show');
     }
