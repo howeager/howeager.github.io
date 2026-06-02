@@ -1,4 +1,4 @@
-    const banner = [
+    const bannerWide = [
       "╔══════════════════════════════════════════════════════════╗",
       "║              ROBERTO SALDANA - PORTFOLIO                 ║",
       "╚══════════════════════════════════════════════════════════╝",
@@ -15,6 +15,23 @@
       "═══════════════════════════════════════════════════════════",
       ""
     ];
+    const bannerNarrow = [
+      "╔════════════════════════╗",
+      "║  ROBERTO SALDANA       ║",
+      "║  PORTFOLIO             ║",
+      "╚════════════════════════╝",
+      "",
+      "Welcome to my terminal portfolio!",
+      "",
+      "About Me:",
+      "  Roberto Saldana",
+      "  CIS @ Cal Poly Pomona",
+      "  CCDC · SecOps Club",
+      "",
+      "Type ls for commands.",
+      ""
+    ];
+    const banner = window.matchMedia("(max-width: 640px)").matches ? bannerNarrow : bannerWide;
 
     const posts = [
       {
@@ -105,11 +122,14 @@
       if(line < banner.length){
         const current = banner[line];
         if(col < current.length){
-          output.innerHTML += current.charAt(col);
+          if(col === 0){
+            output.insertAdjacentHTML('beforeend', '<span class="banner-line"></span>');
+          }
+          const lineEl = output.querySelector('.banner-line:last-child');
+          if(lineEl) lineEl.textContent += current.charAt(col);
           col++;
           setTimeout(typeWriter, 8);
         }else{
-          output.innerHTML += '<br>';
           line++; col=0;
           setTimeout(typeWriter, 24);
         }
@@ -220,8 +240,14 @@
       viewerContent.appendChild(iframe);
 
       btnPop.href = new URL(url, window.location.href).href;
-      btnClose.onclick = () => viewer.classList.remove('show');
+      btnClose.onclick = closeViewer;
       viewer.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeViewer(){
+      viewer.classList.remove('show');
+      document.body.style.overflow = '';
     }
 
     function showDemo(kind){
@@ -256,5 +282,9 @@ console.log(greet('World'));</code></pre>`;
       setTimeout(()=> toast.classList.remove('show'), 8000);
     }
     toastClose.addEventListener('click', ()=> toast.classList.remove('show'));
+
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape' && viewer.classList.contains('show')) closeViewer();
+    });
 
     setTimeout(typeWriter, 400);

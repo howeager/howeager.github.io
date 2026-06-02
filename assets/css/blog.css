@@ -21,6 +21,8 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: var(--header-offset);
+  -webkit-text-size-adjust: 100%;
+  overflow-x: clip;
 }
 
 body {
@@ -31,10 +33,12 @@ body {
   font-size: 16px;
   line-height: 1.85;
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
 }
 
 header {
-  padding: 14px 20px;
+  padding: 14px max(16px, env(safe-area-inset-right)) 14px max(16px, env(safe-area-inset-left));
   border-bottom: 1px solid var(--border);
   background: rgba(36, 13, 30, 0.95);
   backdrop-filter: blur(8px);
@@ -105,6 +109,7 @@ article h2 {
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
 }
@@ -197,6 +202,35 @@ a.stack-card:focus-visible { outline: 2px solid var(--accent-blue); outline-offs
 .stack-card .nm { font-weight: 600; font-size: 0.95rem; color: var(--fg); margin-bottom: 0.2rem; transition: color 0.2s; }
 .stack-card .ds { font-size: 0.8rem; color: var(--muted); }
 
+.why-table {
+  margin: 1.5rem 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.why-row {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+.why-row:last-child { border-bottom: none; }
+.why-tool {
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  word-break: break-word;
+}
+.why-reason {
+  padding: 0.85rem 1rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.why-reason p { margin: 0.5rem 0 0; }
+
 .phase { border-left: 2px solid var(--border); padding: 0 0 0 1.5rem; margin: 1.5rem 0; position: relative; }
 .phase::before { content: ''; position: absolute; left: -5px; top: 0.5rem; width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; }
 .phase .plbl { font-family: var(--mono); font-size: 0.7rem; color: var(--accent-green); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.4rem; }
@@ -265,14 +299,82 @@ footer { border-top: 1px solid var(--border); padding: 2rem 20px; text-align: ce
 footer a { color: var(--accent-blue); text-decoration: none; }
 
 @media (max-width: 640px) {
+  :root { --header-offset: 3.75rem; }
+
+  header { padding-top: max(12px, env(safe-area-inset-top)); }
+
   .toc ol { grid-template-columns: 1fr; }
-  main { padding: 2rem 16px 5rem; }
+  main {
+    padding: 1.75rem max(16px, env(safe-area-inset-right)) max(4rem, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  footer {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  }
+  article h2 { font-size: 1.2rem; }
+  article h2 .num { flex: 0 0 auto; }
+  .meta { font-size: 0.75rem; gap: 0.5rem 0.75rem; }
+  .result-banner { padding: 1.5rem 1rem; }
+  .result-banner .big { font-size: 2rem; }
+  .why-row { grid-template-columns: 1fr; }
+  .why-tool {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase { padding-left: 1rem; margin-left: 0.25rem; }
+  pre {
+    padding: 1rem;
+    font-size: 0.78rem;
+    max-width: 100%;
+  }
+  .img-viewer {
+    margin: 1.25rem 0;
+    border-radius: 10px;
+  }
+  .img-viewer-header {
+    height: auto;
+    min-height: 36px;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+  }
+  .img-viewer-actions-left,
+  .img-viewer-actions-right,
+  .img-viewer-footer {
+    display: none;
+  }
+  .img-viewer-filename {
+    position: static;
+    transform: none;
+    max-width: 100%;
+    flex: 1 1 100%;
+    text-align: left;
+    padding: 0 0 0 4px;
+    white-space: normal;
+    word-break: break-word;
+  }
+  .img-viewer-body {
+    min-height: 120px;
+  }
+  .img-viewer-body img {
+    max-height: none;
+    width: 100%;
+    height: auto;
+    cursor: zoom-in;
+  }
   .img-viewer-float--left,
   .img-viewer-float--right {
     float: none;
     width: 100%;
-    max-width: 280px;
-    margin: 0 auto 1rem;
+    max-width: none;
+    margin: 0 0 1rem;
+  }
+  .img-lightbox {
+    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  }
+  .img-lightbox-img {
+    max-height: calc(100dvh - 6rem);
+    max-height: calc(100vh - 6rem);
   }
 }
 
