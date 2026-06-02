@@ -11,7 +11,7 @@
     <div class="icon" aria-hidden="true">💡</div>
     <div>
       <div class="title">Terminal Hint</div>
-      <div class="msg">Type <kbd>ls</kbd> to see commands and posts. Use ↑/↓ for history.</div>
+      <div class="msg">Tap the command line below, type <kbd>ls</kbd> for posts, then Enter. On mobile you can also tap post links after <kbd>ls</kbd>.</div>
     </div>
     <button class="x" id="toastClose" aria-label="Close notification">✕</button>
   </div>
@@ -36,7 +36,7 @@
     </div>
   </section>
 
-  <main class="terminal" role="application" aria-label="Terminal portfolio">
+  <main class="terminal" aria-label="Terminal portfolio">
     <header class="terminal-header" aria-hidden="true">
       <div class="window-buttons">
         <span class="btn close"></span>
@@ -52,8 +52,9 @@
 
       <div class="prompt" id="prompt">
         <span class="ps1"><span class="user">roberto@cal-poly-pomona</span>:<span class="path">~</span>$</span>
-        <input id="input" name="command" type="text" inputmode="text" autocomplete="off" spellcheck="false"
-               aria-label="Command line" placeholder="Type a command and press Enter…" />
+        <input id="input" name="command" type="text" inputmode="text" enterkeyhint="go"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+               aria-label="Command line" placeholder="Tap here, type a command, Enter…" />
       </div>
     </section>
   </main>

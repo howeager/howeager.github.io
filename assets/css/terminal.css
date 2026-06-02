@@ -110,6 +110,7 @@ a:hover{ text-decoration:underline; color:var(--accent-green) }
 .prompt .ps1{ white-space:nowrap; flex:0 0 auto }
 .prompt input{
   flex:1;
+  min-width:0;
   background:transparent;
   border:none;
   outline:none;
@@ -118,6 +119,7 @@ a:hover{ text-decoration:underline; color:var(--accent-green) }
   caret-color:var(--fg);
   padding:.35rem .4rem;
   border-bottom:1px solid rgba(255,255,255,.14);
+  touch-action:manipulation;
 }
 .prompt input::placeholder{ color:rgba(255,255,255,.45) }
 
@@ -217,14 +219,20 @@ a:hover{ text-decoration:underline; color:var(--accent-green) }
   .btn{ width:14px; height:14px }
   .title{ font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0 }
   .prompt{
+    z-index:5;
     padding-bottom:max(12px, env(safe-area-inset-bottom));
   }
-  .prompt input{ font-size:16px } /* prevent iOS zoom */
-  .prompt .ps1{ font-size:11px; max-width:42vw; overflow:hidden; text-overflow:ellipsis }
+  .prompt input{
+    font-size:16px; /* prevent iOS zoom */
+    min-height:44px;
+    padding:.5rem .4rem;
+  }
+  .prompt .ps1{ font-size:11px; max-width:38vw; overflow:hidden; text-overflow:ellipsis }
   .toast{
     left:12px;
     right:12px;
-    bottom:max(12px, env(safe-area-inset-bottom));
+    top:max(12px, env(safe-area-inset-top));
+    bottom:auto;
     width:auto;
   }
   .viewer{

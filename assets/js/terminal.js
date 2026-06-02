@@ -116,6 +116,31 @@
     const output = document.getElementById('output');
     const prompt = document.getElementById('prompt');
     const input = document.getElementById('input');
+    const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+    const typeDelay = isCoarsePointer ? 0 : 8;
+    const lineDelay = isCoarsePointer ? 0 : 24;
+
+    function focusInput(){
+      input.focus({ preventScroll: true });
+      scrollPromptIntoView();
+    }
+
+    function scrollPromptIntoView(){
+      requestAnimationFrame(()=>{
+        prompt.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      });
+    }
+
+    term.addEventListener('pointerdown', (e)=>{
+      if(e.target.closest('a, button, .viewer')) return;
+      if(e.target !== input) focusInput();
+    });
+
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', ()=>{
+        if(document.activeElement === input) scrollPromptIntoView();
+      });
+    }
 
     let line=0, col=0;
     function typeWriter(){
@@ -128,13 +153,13 @@
           const lineEl = output.querySelector('.banner-line:last-child');
           if(lineEl) lineEl.textContent += current.charAt(col);
           col++;
-          setTimeout(typeWriter, 8);
+          setTimeout(typeWriter, typeDelay);
         }else{
           line++; col=0;
-          setTimeout(typeWriter, 24);
+          setTimeout(typeWriter, lineDelay);
         }
       }else{
-        input.focus();
+        if(!isCoarsePointer) focusInput();
         showToast();
       }
     }
@@ -195,15 +220,15 @@
       }
     });
 
-    // open links in the viewer
+    // open links in the viewer (touch devices navigate directly — easier on phones)
     document.addEventListener('click', (e)=>{
       const a = e.target.closest('a.blog-post');
-      if(a){
-        e.preventDefault();
-        const idx = Number(a.dataset.index ?? 0);
-        const p = posts[idx];
-        openViewer(p.url, p.title);
-      }
+      if(!a) return;
+      if(isCoarsePointer) return;
+      e.preventDefault();
+      const idx = Number(a.dataset.index ?? 0);
+      const p = posts[idx];
+      openViewer(p.url, p.title);
     });
 
     const viewer = document.getElementById('viewer');
@@ -270,16 +295,16 @@ console.log(greet('World'));</code></pre>`;
     }
 
     input.addEventListener('focus', ()=>{
-      setTimeout(()=>{
-        prompt.scrollIntoView({block:'end', behavior:'smooth'});
-      }, 150);
+      toast.classList.remove('show');
+      setTimeout(scrollPromptIntoView, 150);
     });
 
     const toast = document.getElementById('toast');
     const toastClose = document.getElementById('toastClose');
     function showToast(){
       toast.classList.add('show');
-      setTimeout(()=> toast.classList.remove('show'), 8000);
+      const ms = isCoarsePointer ? 5000 : 8000;
+      setTimeout(()=> toast.classList.remove('show'), ms);
     }
     toastClose.addEventListener('click', ()=> toast.classList.remove('show'));
 
@@ -287,4 +312,18 @@ console.log(greet('World'));</code></pre>`;
       if(e.key === 'Escape' && viewer.classList.contains('show')) closeViewer();
     });
 
-    setTimeout(typeWriter, 400);
+    function startBanner(){
+      if(isCoarsePointer){
+        banner.forEach((text)=>{
+          const span = document.createElement('span');
+          span.className = 'banner-line';
+          span.textContent = text;
+          output.appendChild(span);
+        });
+        showToast();
+        return;
+      }
+      setTimeout(typeWriter, 400);
+    }
+
+    startBanner();
