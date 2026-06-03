@@ -725,7 +725,20 @@ WantedBy=multi-user.target</code></pre>
       in both files must match exactly. Getting any one of these wrong causes Velocity to
       silently drop connections with no useful error message. The fix was reading the actual
       source code, not the documentation.
+      <br><br>
+      And it bit me for real later: one day the host started crashing with the CPU pinned, and
+      I traced it to a Minecraft node crash-looping 25 times in a row. The cause was a single pair
+      of quotes — <code>enabled: "true"</code> as a string instead of <code>enabled: true</code> as
+      a boolean. One character. Add the offline-mode auth pivot (the LXCs can't reach Mojang), a
+      player-UUID mismatch that made me think I'd nuked the world (I hadn't), and a Gitea runner
+      that fought me on <code>shutdown_timeout</code>, a Docker-vs-host executor mismatch, and
+      <code>actions/checkout</code> hanging with no internet — and that one afternoon was easily the
+      hardest part of the whole build. None of it was in the plan; all of it had to be read out of
+      logs one line at a time.
     </div>
+
+    <!-- PHOTO PLACEHOLDER — add your screenshot/photo here -->
+    <div data-viewer="../assets/img/meltdown.png" data-caption="ADD YOUR PHOTO HERE — e.g. the crash-loop logs, the 478% Grafana sys-load gauge, or the unknown-packet client error"></div>
 
     <div class="divider"></div>
 
