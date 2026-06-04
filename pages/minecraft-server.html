@@ -59,9 +59,9 @@
     <h2 id="intro"><span class="num">01 —</span> Introduction</h2>
 
     <p>
-      Minecraft is my favorite game. It's so easy to just boot up a server, share your IP with your friends,
+      Minecraft everyones favorite game. It's so easy to just boot up a server, share your IP with your friends,
       and play for hours until you pass out of exhoaustion. Or until one of your friends griefs the entire world and it suddenly
-      turns into an unplanned anarchy server and everything crashes and burns. Amazing. I love this game.
+      turns into an unplanned anarchy server and everything crashes and burns. I love this game.
     </p>
 
     <p>
@@ -92,8 +92,10 @@
       <li>8 TB bandwidth</li>
       </ul>
 
-      After looking through it honestly, from a consumer standpoint it made complete sense. It was simple. Convenient. One click,
-      enter a credit card, done. No setup. No configuration. No thinking. Connect and play
+      After looking through it honestly, from a consumer standpoint it made complete sense.
+       <p> It was simple.</p>  
+       <p>Convenient.</p> 
+       One click, enter a credit card, done. No setup. No configuration. No thinking. Connect and play.
     </p>
 
     <p>
@@ -107,9 +109,11 @@
     </p>
 
     <p>
-      So instead of just saying yes and succumbing to the easy way out, I proposed a bet: if I could build
+      So instead of just saying yes and succumbing to the easy way out, I proposed a bet: </p>
+       <p>
+      if I could build
       a server setup that was on par or maybe even better than what Hostinger was advertising, the whole group would have to pay
-      me the full year of the Hostinger subscription he was about to spend money on anyway.
+      me the full year of the Hostinger subscription that they were about to spend money on anyway.
     </p>
 
     <div data-viewer="../assets/img/text_message_2.png" data-caption="The bet proposal — he agreed"></div>
@@ -119,19 +123,22 @@
     </p>
 
     <p>
-      <strong>Shoot.</strong> Lowkey I was hoping everyone in our group would say no but because of my loud mouth I had given myself a chore. 
+      <strong>Shoot.</strong>  </p>
+       <p>
+      Lowkey I was hoping everyone in our group would say no but because of my loud mouth I had given
+      myself a chore. 
+       </p>
+      <p>
       <b>
       Now I actually had to deliver on this.
       </b>
+       </p>
       I had just committed to building a production-grade server from scratch, on a budget,
-       a deadline, and for a group of friends who were indoublty going to troll me when we play. Yeah this is going to be worth it.
+       with a deadline, and for a group of friends who were indoublty going to troll me when we play. Yeah this is going to be worth it.
     </p>
 
     <p>
-      What followed was a deep dive into Proxmox, LXC containers, Tailscale networking,
-      Velocity proxies, HashiCorp Vault, Prometheus, Grafana, Loki, Gitea CI/CD, and a custom write-lock
-      failover system that was all mapped with the DoD DevSecOps Tools & Activities framework in mind.
-      Keep in mind this was all for a Minecraft server. 
+      What followed was a deep dive into the DoD DevSecOps framework and keep in mind this was all for a <b>Minecraft server</b>. 
      </p>
      <p> 
       I guess we should stop complaining and get to it.
@@ -143,10 +150,12 @@
     <h2 id="cheap"><span class="num">02 —</span> Let's Be Cheap About It</h2>
 
     <p>
-     What will be the hardware that hosts my minecraft server??? After much consideration I choose a <strong>HP EliteDesk 705 G3 Mini</strong> 
-     a little corporate desktop I bought off eBay for only seventy dollars. Thats less than what my friend was about to spend on a single year 
-     of Hostinger. Obviously the price mattered to me, because the whole argument was that the "expensive convenient option" wasn't 
-      actually buying you much at all. Plus if I were to win that money I could invest into the server and upgrade it.
+     What hardware will host my minecraft server??? I didn't really have a lot of criteria, I just needed something that
+     was cheaper than that Hostinger subscription and worked. I scoured through different sites trying to find the best
+     hardware for my project. What I ended up choosing was a simple <strong>HP EliteDesk 705 G3 Mini</strong>. 
+     I was hosting my whole infra on thislittle corporate desktop I bought off eBay for only a measly seventy dollars.
+      That was definitely less than what my friends were about to spend on a single year 
+     of Hostinger.
     </p>
 
     <div data-viewer="../assets/img/elite_desktop.jpg" data-caption="The HP EliteDesk 705 G3 Mini — $70 off eBay"></div>
@@ -157,13 +166,14 @@
     </div>
 
     <p>
-      Keep in mind that the Hostinger server had promised us
-      2 cores, 4 mb of memory and 100 gb of storage. We had bought something that had double the power for only half the cost.
+      Looking back at it, the Hostinger server had promised us
+      2 cores, 4 mb of memory and 100 gb of storage. That tiny desktop I had bought had double 
+      the resources for only half the cost. What a steal!
     </p>
 
     <p>
-      At the end, the total cost for everything: <strong>$70 bucks</strong>. The Hostinger plan that my friends were about to 
-      but costs more than that annually. I'm already ahead of the program.
+      At the end, the total cost for everything: <strong>$70 bucks</strong>! The Hostinger plan that my friends were about to 
+      buy costs way more than that. I'm already ahead of the program!
     </p>
 
     <div class="divider"></div>
@@ -172,20 +182,17 @@
     <h2 id="methodology"><span class="num">03 —</span> DevSecOps Methodology</h2>
 
     <p>
-      I could theoritcally finish this project by just installing a jar minecraft server, give out the servers public ip to my friends 
-      but that just seemed too easy. Here's where I made a decision that turned a weekend project into something
-      I'd actually want to put my name on.
+      Lets get into the planning! I could theoritcally build this server by just installing a .jar minecraft server, give out the servers public ip to my friends,
+      hope I don't get attack through my exposed ports and wish for the best but that just seemed too easy
+      (and unsafe). Here's where I made a decision that turned a weekend project into something
+      that was actually worth being proud of.
       </p>
       <p>
         For the longest time I've been wanting to build something that follows the DOD Dev Sec OPS framework just 
-        because it could be good practice but also get a feel for how businesses build things.
-      Before I touched a single config file, I mapped the whole build to the 
-      DoD DevSecOps Fundamentals Guidebook. I've been learning about its use cases and the framework is honestly just a 
-      clean description of how mature software delivery works anywhere.
-
-      I wanted to force myself to justify every component against a real, externally-defined standard. Just so I could make this a learning oppurtunity for myself. 
-      If a piece of this build couldn't be tied to an actual phase of a real framework, that was a signal I was adding it for vanity. 
-      The framework became my filter for taste.
+        because it could be good practice, but also to get a feel for how good businesses build things.
+      Before I touched a single config file, downloaded anything, I mapped the whole build to the 
+      DoD DevSecOps Fundamentals Guidebook. I've been learning about its use cases and the framework during my senior year
+      in university and it is honestly just a clean description of how mature software delivery works.
     </p>
 
     <div data-viewer="../assets/img/devsec_ops_framework.png" data-caption="DoD DevSecOps Fundamentals Guidebook — Tools & Activities v2.0"></div>
@@ -196,7 +203,7 @@
       The framework mandates SIEM/SOAR integration at every phase.
     </div>
 
-    <p>These are the key principles that Icarried into this build directly from the DOD framework:</p>
+    <p>These are the key principles that I carried into this build directly from the DOD framework:</p>
 
     <ul>
       <li><strong>Zero Trust Architecture</strong> — surface levelsecurity alone is not enough (especially with my friends), when giving access we must verify at every layer</li>
@@ -215,8 +222,8 @@
     <p>
       Before the story gets into the weeds, here's the whole stack in one place. 
       The thing I want you to notice is that every single piece is something you'd 
-      actually find in a real enterprise environment, just shrunk down to fit a much more consumer grade infra.
-      Nothing here is in here for show, each tool is solving a specific problem that hostinger offers.
+      actually find in a real enterprise environment, just shrunk down to fit a much more consumer grade infra plus 
+      its free so that was saving me on the ROI.
     </p>
 
     <div class="stack-grid">
@@ -286,56 +293,6 @@
         <div class="ds">Filesystem CVE scanner integrated into CI/CD — fails pipeline on HIGH/CRITICAL findings</div>
       </a>
     </div>
-
-    <h3>The Network Diagram</h3>
-
-    <p>
-      Below I have provided a network diagram.
-      The main thing that should pass by anyones head is that there are exactly only two kinds of people who can touch 
-      this network (theoritcally of course), and they get the keys to different doors. 
-</p>
-<p>
-      I obviously assigned myself as admin giving myself the rights to access the whole entire network such as:
-      <ul> 
-      
-      <li>Gitea on 3000</li>
-      <li>Grafana on 3001.</li>
-      <li>Proxmox on 8006</li> 
-      <li>Vault on 8200</li> 
-  
-      </ul> 
-</p>
-<p>      
-       And Although my friends come through the same building (Tailscale) their access 
-       grant opens only open one port: 25565, minecraft.
-       </p> 
-       <p>
-        <b>Technically</b>
-        everything else is invisible to them. 
-        And yes, I designed it that way because I know they would want to snoop around and make a fool out of me. 
-    </p>
-
-    <div data-viewer="../assets/img/diagram.png" data-caption="Proxmox Homelab — Minecraft DevSecOps Network"></div>
-
-    <p>
-      Ok now lets dive into the meat and bones of the infrastructure next just to see what we are working with 
-      </p>
-      <p>
-      The Proxmox host sits in the middle with two network identities, that being a local LAN IP
-      (<code>192.168.4.41</code>) and a Tailscale IP (<code>100.107.12.47</code>). Everything beneath
-      it lives on an isolated internal bridge (<code>vmbr1</code>) at <code>10.10.10.0/24</code>.
-      Nothing on that subnet is directly reachable from outside and to access anything at all traffic needs to 
-      flow through Proxmox first via iptables PREROUTING rules that forward specific ports from the Tailscale interface
-      to the appropriate LXC.
-    </p>
-
-    <p>
-      Velocity is the only thing players with guest access can connect to. It receives all Minecraft traffic on port 25565 and
-      load balances across the two backend PaperMC nodes. The monitoring stack scrapes metrics from every
-      LXC and ships logs to Loki. Gitea handles source control and pushes validated config changes through
-      the CI/CD pipeline automatically before anything reaches production.
-    </p>
-    <div data-viewer="../assets/img/prerouting_rules.png" data-caption="IpTables Prerouting Rules"></div>
 
     <h3>Why These Specific Tools</h3>
 
@@ -498,6 +455,56 @@
         secret that backends validate on every connection.
       </p>
     </div>
+<h3>The Network Diagram</h3>
+
+    <p>
+      Below I have provided a network diagram.
+      The main thing that should pass by anyones head is that there are exactly only two kinds of people who can touch 
+      this network (theoritcally of course), and they get the keys to different doors. 
+</p>
+<p>
+      I obviously assigned myself as admin giving myself the rights to access the whole entire network such as:
+      <ul> 
+      
+      <li>Gitea on 3000</li>
+      <li>Grafana on 3001.</li>
+      <li>Proxmox on 8006</li> 
+      <li>Vault on 8200</li> 
+  
+      </ul> 
+</p>
+<p>      
+       And Although my friends come through the same building (Tailscale) their access 
+       grant opens only open one port: 25565, minecraft.
+       </p> 
+       <p>
+        <b>Technically</b>
+        everything else is invisible to them. 
+        And yes, I designed it that way because I know they would want to snoop around and make a fool out of me. \
+         Ok now lets dive into the meat and bones of the infrastructure next just to see what we are working with 
+    </p>
+
+    <div data-viewer="../assets/img/diagram.png" data-caption="Proxmox Homelab — Minecraft DevSecOps Network"></div>
+
+    <p>
+      </p>
+      <p>
+      The Proxmox host sits in the middle with two network ids, that being a local LAN IP
+      (<code>192.168.4.41</code>) and a Tailscale IP (<code>100.107.12.47</code>). Everything beneath
+      it lives on an isolated internal bridge (<code>vmbr1</code>) at <code>10.10.10.0/24</code>.
+      Nothing on that subnet is directly reachable from outside and to access anything at all traffic needs to 
+      flow through Proxmox first via iptables PREROUTING rules that forward specific ports from the Tailscale interface
+      to the appropriate LXC.
+    </p>
+
+    <p>
+      Velocity is the only thing players with guest access can connect to. It receives all Minecraft traffic on port 25565 and
+      load balances across the two backend PaperMC nodes. The monitoring stack scrapes metrics from every
+      LXC and ships logs to Loki. Gitea handles source control and pushes validated config changes through
+      the CI/CD pipeline automatically before anything reaches production.
+    </p>
+    <div data-viewer="../assets/img/prerouting_rules.png" data-caption="IpTables Prerouting Rules"></div>
+
 
     <h3>Threat Model</h3>
     <p>
@@ -505,7 +512,6 @@
       threat modeling as an activity. Here are the attack surfaces identified and their mitigations:
     </p>
     <ul>
-      <li><strong>Unauthenticated access to Proxmox management (port 8006)</strong> — mitigated: only reachable via Tailscale, Tailscale-only iptables rule</li>
       <li><strong>Credential exposure via hardcoded secrets</strong> — mitigated: HashiCorp Vault KV-v2, no credentials in any config file or repo</li>
       <li><strong>Lateral movement between LXCs</strong> — mitigated: isolated vmbr1 bridge, no inter-LXC routing by default</li>
       <li><strong>Privilege escalation via service accounts</strong> — mitigated: unprivileged LXCs, dedicated non-root users per service</li>
@@ -853,34 +859,33 @@ chmod -R 775 /mnt/minecraft-world</code></pre>
     <p>
       A custom watchdog daemon runs on the Proxmox host and manages a write lock file
       (<code>/mnt/minecraft-world/.writelock</code>) that determines which node has write
-      permission at any given time. The failover cycle follows your diagram exactly:
+      permission at any given time.
     </p>
 
     <div class="stack-grid">
       <div class="stack-card">
         <div class="lbl">State 1 — Normal</div>
         <div class="nm">minecraft-1 ON · minecraft-2 IDLE</div>
-        <div class="ds">Lock held by 102. minecraft-2 is stopped. Players on minecraft-1.</div>
+        <div class="ds">Lock held by minecraft-1. minecraft-2 is stopped.</div>
       </div>
       <div class="stack-card">
         <div class="lbl">State 2 — Failover</div>
         <div class="nm">minecraft-1 DEAD · minecraft-2 TURNS ON</div>
-        <div class="ds">Watchdog detects 102 is down, releases lock, starts minecraft-2, acquires lock for 106.</div>
+        <div class="ds">Watchdog detects minecraft-1 is down, releases lock, starts minecraft-2, acquires lock for minecraft-2.</div>
       </div>
       <div class="stack-card">
         <div class="lbl">State 3 — Recovery</div>
         <div class="nm">minecraft-1 TURNS ON · minecraft-2 ON</div>
-        <div class="ds">Watchdog detects 102 is back. Both briefly running. Waiting 30s for 102 to fully start.</div>
+        <div class="ds">Watchdog detects minecraft-1 is back on. Both are briefly running. Waits 30s for minecraft-1 to fully start.</div>
       </div>
       <div class="stack-card">
         <div class="lbl">State 4 — Handback</div>
         <div class="nm">minecraft-1 ON · minecraft-2 IDLE</div>
-        <div class="ds">Lock returned to 102. minecraft-2 stopped. Back to normal state.</div>
+        <div class="ds">Lock returned to minecraft-1. minecraft-2 stopped. Back to normal state.</div>
       </div>
     </div>
 
     <pre><code>#!/bin/bash
-# mc-watchdog — runs as a systemd service on the Proxmox host
 LOCKFILE=/mnt/minecraft-world/.writelock
 
 node_alive() {
@@ -890,7 +895,7 @@ node_alive() {
 while true; do
   OWNER=$(cat $LOCKFILE 2>/dev/null)
 
-  # minecraft-1 is primary and dies — start minecraft-2
+  # if minecraft-1 dies — start minecraft-2
   if [ "$OWNER" = "102" ] && ! node_alive 102; then
     mc-lock release 102
     pct exec 106 -- systemctl start minecraft
@@ -898,7 +903,7 @@ while true; do
     mc-lock acquire 106
     log "FAILOVER: minecraft-1 died — minecraft-2 acquired lock"
 
-  # minecraft-2 active and minecraft-1 recovers — hand back
+  # minecraft-2  is active and minecraft-1 recovers then hand back key
   elif [ "$OWNER" = "106" ] && node_alive 102; then
     sleep 30
     mc-lock release 106
@@ -915,14 +920,13 @@ done</code></pre>
       host reboots. The full failover cycle  from minecraft-1 dying to minecraft-2 being
       live with write access takes approximately 30-40 seconds including the startup wait.
       The handback cycle from minecraft-1 recovering to reclaiming the lock takes approximately
-      40 seconds.
+      40 seconds. So in the aspect of availabilty we are on the right track!
     </p>
 
     <div class="callout success">
       <strong>Tested and Verified</strong>
-      The watchdog log shows three complete failover/handback cycles from live testing:
-      14:10:34 acquired by minecraft-1 → 14:15:09 FAILOVER to minecraft-2 →
-      14:21:18 HANDBACK to minecraft-1. The cycle repeats indefinitely.
+      <div data-viewer="../assets/img/watchdog.png" ></div>
+
     </div>
 
     <div class="divider"></div>
@@ -937,17 +941,12 @@ done</code></pre>
     </p>
 
     <div class="phase">
-      <div class="plbl">Test 01 — Remote Access Verification</div>
-      <p>
-        Confirmed the Proxmox web UI (<code>100.107.12.47:8006</code>) was accessible over Tailscale
-        on T-Mobile 5G with WiFi completely disabled. The connection established in under 2 seconds.
-        Zero port forwarding rules exist on the home router. The ISP has no visibility into the
-        management traffic.
+
       </p>
     </div>
 
     <div class="phase">
-      <div class="plbl">Test 02 — Cross-Continental Connectivity</div>
+      <div class="plbl">Test 01 — Cross-Continental Connectivity</div>
       <p>
         A friend <strong>stationed in Qatar</strong> connected to the server via Tailscale.
         No significant latency. Casual gameplay was smooth with no rubber-banding, timeout events,
@@ -957,17 +956,16 @@ done</code></pre>
     </div>
 
     <div class="phase">
-      <div class="plbl">Test 03 — Access Control Enforcement</div>
+      <div class="plbl">Test 02 — Access Control Enforcement</div>
       <p>
         Confirmed that friends could reach port 25565 via Tailscale but received connection
         refused on ports 8006, 3000, 8200, and 9090. The Tailscale ACL grants are working
-        exactly as designed. A friend attempting to access the Proxmox UI sees nothing,
-        not even a connection timeout, just immediate refusal.
+        exactly as designed.
       </p>
     </div>
 
     <div class="phase">
-      <div class="plbl">Test 04 — Systemd Service Recovery</div>
+      <div class="plbl">Test 03 — Systemd Service Recovery</div>
       <p>
         Tested <code>Restart=always</code> behavior by forcibly killing the Minecraft Java process
         with <code>kill -9</code>. Systemd detected the exit within 1 second and restarted the
@@ -978,7 +976,7 @@ done</code></pre>
     </div>
 
     <div class="phase">
-      <div class="plbl">Test 05 — Write-Lock Failover Cycle</div>
+      <div class="plbl">Test 04 — Write-Lock Failover Cycle</div>
       <p>
         Stopped minecraft-1 with <code>pct exec 102 -- systemctl stop minecraft</code> while
         monitoring the watchdog log in real time. Within 10 seconds the watchdog detected the
@@ -989,13 +987,19 @@ done</code></pre>
     </div>
 
     <div class="phase">
-      <div class="plbl">Test 06 — CI/CD Pipeline Validation</div>
+      <div class="plbl">Test 05 — CI/CD Pipeline Validation</div>
       <p>
-        Introduced a deliberate TOML syntax error into <code>velocity.toml</code> and pushed it.
-        The pipeline caught it in the validation stage and the deploy stage did not run. Fixed the
+        Introduced a deliberate TOML syntax error into <code>velocity.toml</code> by adding the <code>@</code>
+        at the top of the file and pushed it.
+        The pipeline caught it in the validation stage and the deploy stage did not run. Once I fixed the
         error, pushed again, pipeline passed all gates and automatically deployed the updated
         config to the velocity-proxy LXC and restarted the service.
       </p>
+
+
+
+
+
     </div>
 
     <div class="divider"></div>
@@ -1012,8 +1016,8 @@ done</code></pre>
     <h3>Sleep Prevention</h3>
     <p>
       The HP EliteDesk ships with aggressive power management defaults that will suspend the
-      machine after a period of inactivity. For a server, this is catastrophic. All sleep
-      and suspend targets were permanently masked:
+      machine after a period of inactivity. For a server, this is catastrophic I am trying to have the best uptime.
+       All sleep and suspend targets were permanently masked:
     </p>
 
     <pre><code>systemctl mask sleep.target suspend.target \
@@ -1114,7 +1118,7 @@ systemctl restart systemd-logind</code></pre>
       interface that operations teams use in production environments.
     </p>
 
-    <div data-viewer="../assets/img/grafana.png" data-caption="Grafana — Node Exporter Full dashboard showing all LXC metrics"></div>
+    <div data-viewer="../assets/img/loki_velocity.png" ></div>
 
     <div class="callout success">
       <strong>ISCM Mapping</strong>
@@ -1142,7 +1146,7 @@ systemctl restart systemd-logind</code></pre>
     <pre><code>{
   "hosts": { "proxmox": "100.107.12.47" },
   "groups": {
-    "group:admins": ["robasaldana@github"],
+    "group:admins": ["admin@gmail"],
     "group:friends": ["friend@gmail.com"]
   },
   "grants": [
@@ -1229,10 +1233,6 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
       Prometheus and Grafana are Datadog. Loki is Splunk.
     </p>
 
-    <p>
-      The Hostinger server would have cost more annually than the entire hardware budget.
-      This runs indefinitely for the cost of electricity.
-    </p>
 
     <div class="skills">
       <span class="skill g">Proxmox VE</span>
@@ -1262,7 +1262,7 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
     <h2 id="limitations"><span class="num">16 —</span> Limitations & Reality Check</h2>
 
     <p>
-      No honest writeup skips this section. Here is what this setup does not do well and
+      Here is what this setup does not do well and
       why those trade-offs were acceptable for a homelab context.
     </p>
 
@@ -1271,7 +1271,8 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
         <strong>Single physical machine.</strong> Everything runs on one HP EliteDesk. If the
         hardware fails, everything fails simultaneously. This is a homelab, not a data center.
         The correct enterprise answer is a Proxmox cluster across multiple nodes with Ceph
-        shared storage. That costs significantly more than $85.
+        shared storage. That costs significantly more than $70. Maybe I'll do an update and expand
+        more on this
       </li>
       <li>
         <strong>No automated backups.</strong> World data lives on the shared Proxmox host
@@ -1282,18 +1283,19 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
         <strong>Vault unseal key on disk.</strong> The auto-unseal script stores the unseal key
         on the Proxmox host filesystem. In production, auto-unseal would use a cloud KMS (AWS KMS,
         Azure Key Vault) so no key is ever stored locally. For a homelab, storing the key on an
-        access-controlled machine behind Tailscale is an acceptable trade-off.
+        access-controlled machine behind Tailscale was an acceptable trade-off.
       </li>
       <li>
         <strong>Failover is not instantaneous.</strong> The write-lock watchdog polls every 10
         seconds and the failover process takes 30-40 seconds including the minecraft-2 startup time.
         Players will experience a disconnect during this window. A faster solution would require
-        keeping minecraft-2 warm at all times, which doubles the memory footprint.
+        keeping minecraft-2 warm at all times, which doubles the memory footprint and that itseld is its
+        implementation.
       </li>
       <li>
         <strong>8GB RAM limits player count.</strong> With the current memory allocation, four
-        players is the comfortable operating range. The matching 8GB stick from the bet brings
-        total to 16GB which expands capacity significantly.
+        players is the comfortable operating range. In the future I will expand this limit and see
+        what I can accomplish with it.
       </li>
     </ul>
 
@@ -1303,24 +1305,20 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
     <h2 id="conclusion"><span class="num">17 —</span> Conclusion</h2>
 
     <p>
-      A $70 eBay machine. A bet. A friend in Qatar. And somehow, a production-grade DevSecOps
+      A $70 eBay machine. A bet. A friend in Qatar. Made somehow a production-grade DevSecOps
       homelab mapped to a DoD framework with a custom write-lock failover system and a full
       CI/CD pipeline.
     </p>
 
     <p>
-      The real takeaway is not the Minecraft server. It's that every component of this build
-      has a direct analog in enterprise infrastructure, and building it yourself, on real
-      hardware, with real constraints, solving real problems, teaches you things that reading
-      documentation never will. The Velocity/PaperMC forwarding secret issue took hours to debug
-      because no error message told you what was wrong. The iptables duplicate rules that broke
-      connectivity required understanding exactly how PREROUTING chains are evaluated. The LXC
-      UID mapping issue for the shared world mount required understanding how unprivileged
-      containers map user IDs on the host.
+      The real takeaway is not the Minecraft server. It's pretty much every component of this build
+      has a direct analog in enterprise infrastructure, building it yourself, on real
+      hardware, with real constraints, solving real problems, teaches myself things that reading
+      documentation never will. 
     </p>
 
     <p>
-      You do not need a cloud budget or enterprise hardware to practice real DevSecOps. You need
+      You obviously do not need a cloud budget or enterprise hardware to practice DevSecOps. You just need
       a clear methodology, a willingness to read source code when documentation fails, and ideally
       a friend who almost bought a Hostinger server.
     </p>
@@ -1330,8 +1328,10 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
       <p>
       GitHub: <a href="https://github.com/howeager" target="_blank" rel="noopener">github.com/howeager</a>
       </p>
-      The infrastructure code for this project lives in the <code>minecraft-infra</code> repository.
-      CompTIA Security+ · Cal Poly Pomona CIS · CCDC Competitor · SOC Treasurer
+      <p>
+      Linkedin: <a href="https://www.linkedin.com/in/rob-saldana/" target="_blank" rel="noopener">linkedin.com/in/rob-saldana/</a>
+      </p>
+    
     </div>
 
   </article>
