@@ -33,21 +33,21 @@
       <summary>Table of Contents <span class="toc-count">17 sections</span></summary>
       <ol>
         <li><a href="#intro">Introduction</a></li>
-        <li><a href="#what">What Are We Working With</a></li>
         <li><a href="#cheap">Let's Be Cheap About It</a></li>
         <li><a href="#methodology">DevSecOps Methodology</a></li>
+        <li><a href="#what">What Are We Working With</a></li>
         <li><a href="#plan">Plan Phase — Architecture Design</a></li>
         <li><a href="#develop">Develop Phase — Infrastructure as Code</a></li>
-        <li><a href="#build">Build Phase — Config & Security Validation</a></li>
+        <li><a href="#build">Build Phase — Config &amp; Security Validation</a></li>
         <li><a href="#core">Building the Core Cluster</a></li>
         <li><a href="#deploy">Deploy Phase — Running Minecraft</a></li>
-        <li><a href="#failover">Failover & Write-Lock System</a></li>
-        <li><a href="#test">Test Phase — Failure & Resilience Testing</a></li>
-        <li><a href="#operate">Operate Phase — Backups & Reliability</a></li>
-        <li><a href="#monitor">Monitor Phase — Observability & Logging</a></li>
+        <li><a href="#failover">Failover &amp; Write-Lock System</a></li>
+        <li><a href="#test">Test Phase — Failure &amp; Resilience Testing</a></li>
+        <li><a href="#operate">Operate Phase — Backups &amp; Reliability</a></li>
+        <li><a href="#monitor">Monitor Phase — Observability &amp; Logging</a></li>
         <li><a href="#security">Security Considerations</a></li>
         <li><a href="#results">Results — Did I Win the Bet?</a></li>
-        <li><a href="#limitations">Limitations & Reality Check</a></li>
+        <li><a href="#limitations">Limitations &amp; Reality Check</a></li>
         <li><a href="#conclusion">Conclusion</a></li>
       </ol>
     </details>
@@ -84,7 +84,7 @@
     <div data-viewer="../assets/img/hostinger_website.png" data-caption="Hostinger's Minecraft hosting page"></div>
 
     <p>
-      They were advertising a simple minecraft server for only $10.49 or $125.88 a year. And it came with 
+      They were advertising a simple minecraft server for only $9.49 or $113.88 a year. And it came with 
       <ul>
       <li>2 vCPU cores</li>
       <li>8 GB RAM</li>
@@ -139,8 +139,78 @@
 
     <div class="divider"></div>
 
-    <!-- ── 02 Stack ── -->
-    <h2 id="what"><span class="num">02 —</span> What Are We Working With</h2>
+    <!-- ── 02 Cheap ── -->
+    <h2 id="cheap"><span class="num">02 —</span> Let's Be Cheap About It</h2>
+
+    <p>
+     What will be the hardware that hosts my minecraft server??? After much consideration I choose a <strong>HP EliteDesk 705 G3 Mini</strong> 
+     a little corporate desktop I bought off eBay for only seventy dollars. Thats less than what my friend was about to spend on a single year 
+     of Hostinger. Obviously the price mattered to me, because the whole argument was that the "expensive convenient option" wasn't 
+      actually buying you much at all. Plus if I were to win that money I could invest into the server and upgrade it.
+    </p>
+
+    <div data-viewer="../assets/img/elite_desktop.jpg" data-caption="The HP EliteDesk 705 G3 Mini — $70 off eBay"></div>
+
+    <div class="callout success">
+      <strong>Hardware Specs</strong>
+      HP EliteDesk 705 G3 Mini · AMD APU · 4 cores · 8GB DDR4-2400 · 210GB SSD · ~10–15W idle power draw
+    </div>
+
+    <p>
+      Keep in mind that the Hostinger server had promised us
+      2 cores, 4 mb of memory and 100 gb of storage. We had bought something that had double the power for only half the cost.
+    </p>
+
+    <p>
+      At the end, the total cost for everything: <strong>$70 bucks</strong>. The Hostinger plan that my friends were about to 
+      but costs more than that annually. I'm already ahead of the program.
+    </p>
+
+    <div class="divider"></div>
+
+    <!-- ── 03 Methodology ── -->
+    <h2 id="methodology"><span class="num">03 —</span> DevSecOps Methodology</h2>
+
+    <p>
+      I could theoritcally finish this project by just installing a jar minecraft server, give out the servers public ip to my friends 
+      but that just seemed too easy. Here's where I made a decision that turned a weekend project into something
+      I'd actually want to put my name on.
+      </p>
+      <p>
+        For the longest time I've been wanting to build something that follows the DOD Dev Sec OPS framework just 
+        because it could be good practice but also get a feel for how businesses build things.
+      Before I touched a single config file, I mapped the whole build to the 
+      DoD DevSecOps Fundamentals Guidebook. I've been learning about its use cases and the framework is honestly just a 
+      clean description of how mature software delivery works anywhere.
+
+      I wanted to force myself to justify every component against a real, externally-defined standard. Just so I could make this a learning oppurtunity for myself. 
+      If a piece of this build couldn't be tied to an actual phase of a real framework, that was a signal I was adding it for vanity. 
+      The framework became my filter for taste.
+    </p>
+
+    <div data-viewer="../assets/img/devsec_ops_framework.png" data-caption="DoD DevSecOps Fundamentals Guidebook — Tools & Activities v2.0"></div>
+
+    <div class="callout info">
+      <strong>DoD Framework Reference</strong>
+      Eight phases: Plan → Develop → Build → Test → Release &amp; Deliver → Deploy → Operate → Monitor.
+      The framework mandates SIEM/SOAR integration at every phase.
+    </div>
+
+    <p>These are the key principles that Icarried into this build directly from the DOD framework:</p>
+
+    <ul>
+      <li><strong>Zero Trust Architecture</strong> — surface levelsecurity alone is not enough (especially with my friends), when giving access we must verify at every layer</li>
+      <li><strong>SIEM/logging enabled</strong> implementing a SIEM is a must, I'm using Grafana/Loki for this project</li>
+      <li><strong>Runtime defense</strong> and vulnerability management as baseline REQUIRED capabilities, in this case I am using Trivy to scan the containers for vulnerabilities</li>
+      <li><strong>Infrastructure as Code</strong> for reproducible, auditable, version-controlled deployments, I am using Ansible to provision the servers</li>
+      <li><strong>Secrets management</strong> — no hardcoded credentials, ever, in any file, I am using HashiCorp Vault to store the secrets</li>
+      <li><strong>Immutable infrastructure</strong> — services are rebuilt from templates, not patched in place, I am using Proxmox to manage the servers</li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <!-- ── 04 Stack ── -->
+    <h2 id="what"><span class="num">04 —</span> What Are We Working With</h2>
 
     <p>
       Before the story gets into the weeds, here's the whole stack in one place. 
@@ -210,6 +280,11 @@
         <div class="nm">Eclipse Temurin 25</div>
         <div class="ds">Java 25 LTS via the Adoptium repository — required for PaperMC 26.x</div>
       </a>
+      <a class="stack-card" href="https://trivy.dev/" target="_blank" rel="noopener">
+        <div class="lbl">CVE Scanning</div>
+        <div class="nm">Trivy</div>
+        <div class="ds">Filesystem CVE scanner integrated into CI/CD — fails pipeline on HIGH/CRITICAL findings</div>
+      </a>
     </div>
 
     <h3>The Network Diagram</h3>
@@ -231,7 +306,7 @@
       </ul> 
 </p>
 <p>      
-       And Although my friends come through the same buidling (Tailscale) their access 
+       And Although my friends come through the same building (Tailscale) their access 
        grant opens only open one port: 25565, minecraft.
        </p> 
        <p>
@@ -340,77 +415,15 @@
           To add to more to the LXCs case, I found that Proxmox's clone-from-template workflow is faster and 
           more consistent than Dockerfiles for this use case.</div>
       </div>
+      <div class="why-row">
+        <div class="why-tool"><code>trivy</code></div>
+        <div class="why-reason">
+          Open source CVE scanner from Aqua Security — the same tool used in enterprise pipelines at companies running production Kubernetes.
+          Installed directly on the Gitea runner LXC and runs on every push, scanning the entire repo filesystem against its CVE database.
+          Fails the pipeline hard on any HIGH or CRITICAL severity finding that has a fix available. 
+          This satisfies the DoD Build phase REQUIRED capability for dependency vulnerability checking with zero cloud dependency.</div>
+      </div>
     </div>
-
-    <div class="divider"></div>
-
-    <!-- ── 03 Cheap ── -->
-    <h2 id="cheap"><span class="num">03 —</span> Let's Be Cheap About It</h2>
-
-    <p>
-     What will be the hardware that handles my minecraft server??? After much consideration I choose a<strong>HP EliteDesk 705 G3 Mini</strong> 
-     a little corporate desktop I bought off eBay for only seventy dollars. Thats less than what my friend was about to spend on a single year 
-     of Hostinger. Obviously the price mattered to me, because the whole argument was that the "expensive convenient option" wasn't 
-      actually buying you much at all. Plus if I were to win that money I could invest into the server and make it even more stronder than anything that 
-      we'd buy.
-    </p>
-
-    <div data-viewer="../assets/img/elite_desktop.jpg" data-caption="The HP EliteDesk 705 G3 Mini — $70 off eBay"></div>
-
-    <div class="callout success">
-      <strong>Hardware Specs</strong>
-      HP EliteDesk 705 G3 Mini · AMD APU · 4 cores · 8GB DDR4-2400 · 210GB SSD · ~10–15W idle power draw
-    </div>
-
-    <p>
-      Overall, during the process it held up on its own. Keep in mind that the Hostinger server had promised us
-      2 cores, 4 mb of memory and 100 gb of storage. We had bought something that had double the power for only half the cost.
-    </p>
-
-    <p>
-      Although I was a bit disapointed I successfully ran the build on a single 8GB stick while sourcing a matching replacement, but thats for a future project. 
-    </p>
-
-    <p>
-      At the end the total cost for everything: <strong>$70 bucks</strong>. The Hostinger plan that my friends were about to 
-      but costs more than that annually.I'm ahead of the program already.
-    </p>
-
-    <div class="divider"></div>
-
-    <!-- ── 04 Methodology ── -->
-    <h2 id="methodology"><span class="num">04 —</span> DevSecOps Methodology</h2>
-
-    <p>
-      I could theoritcally start this project by just installing the jar server, and then just giving out my public ip to my friends 
-      but I wanted to kill two birds with one stone. Here's where I made a decision that turned a weekend project into something
-      I'd actually want to put my name on. Before I touched a single config file, I mapped the whole build to the 
-      DoD DevSecOps Fundamentals Guidebook. I've been learning about its use cases and the framework is honestly just a 
-      clean description of how mature software delivery works anywhere.
-
-      I wanted to force myself to justify every component against a real, externally-defined standard. Just so I could make this a learning oppurtunity for myself. 
-      If a piece of this build couldn't be tied to an actual phase of a real framework, that was a signal I was adding it for vanity. 
-      The framework became my filter for taste.
-    </p>
-
-    <div data-viewer="../assets/img/devsec_ops_framework.png" data-caption="DoD DevSecOps Fundamentals Guidebook — Tools & Activities v2.0"></div>
-
-    <div class="callout info">
-      <strong>DoD Framework Reference</strong>
-      Eight phases: Plan → Develop → Build → Test → Release &amp; Deliver → Deploy → Operate → Monitor.
-      The framework mandates SIEM/SOAR integration at every phase.
-    </div>
-
-    <p>Key principles carried into this build directly from the framework:</p>
-
-    <ul>
-      <li><strong>Zero Trust Architecture</strong> — perimeter security alone is not sufficient; access is verified at every layer</li>
-      <li><strong>SIEM/logging integration</strong> at every phase, not as an afterthought added after the fact</li>
-      <li><strong>Runtime defense</strong> and vulnerability management as baseline REQUIRED capabilities</li>
-      <li><strong>Infrastructure as Code</strong> for reproducible, auditable, version-controlled deployments</li>
-      <li><strong>Secrets management</strong> — no hardcoded credentials, ever, in any file</li>
-      <li><strong>Immutable infrastructure</strong> — services are rebuilt from templates, not patched in place</li>
-    </ul>
 
     <div class="divider"></div>
 
@@ -557,7 +570,7 @@
     </p>
 
     <p>
-      The pipeline runs three gates in sequence. If any gate fails, the deploy stage does not run:
+      The pipeline runs four gates in sequence. If any gate fails, the deploy stage does not run:
     </p>
 
     <div class="phase">
@@ -610,9 +623,29 @@ fi</code></pre>
     </div>
 
     <div class="phase">
-      <div class="plbl">Gate 04 — Automated Deploy</div>
+      <div class="plbl">Gate 04 — Trivy CVE Scan</div>
       <p>
-        If all validation gates pass, the deploy job runs automatically. It SSHs into the Proxmox
+        Runs a <a href="https://trivy.dev/" target="_blank" rel="noopener">Trivy</a> filesystem scan
+        against the entire repository on every push. Trivy checks all files, dependencies, and
+        configs against its CVE database and fails the pipeline on any <strong>HIGH</strong> or
+        <strong>CRITICAL</strong> severity finding that has a fix available. This maps directly to
+        the DoD Build phase requirement for dependency vulnerability checking as a REQUIRED baseline
+        capability. Trivy is installed directly on the Gitea runner LXC via the Aqua Security apt repo.
+      </p>
+      <pre><code>trivy fs . \
+  --severity HIGH,CRITICAL \
+  --exit-code 1 \
+  --ignore-unfixed \
+  --no-progress \
+  --format table \
+  --skip-dirs ".git" \
+  --skip-dirs ".gitea"</code></pre>
+    </div>
+
+    <div class="phase">
+      <div class="plbl">Gate 05 — Automated Deploy</div>
+      <p>
+        If all four validation gates pass, the deploy job runs automatically. It SSHs into the Proxmox
         host using the stored deploy key, pushes updated configs into the target LXCs using
         <code>pct push</code>, and restarts the affected services. The entire process is logged
         in the Gitea Actions run history for auditability.
@@ -718,27 +751,14 @@ WantedBy=multi-user.target</code></pre>
     <div class="callout warning">
       <strong>The Hardest Part of This Build</strong>
       The interdependencies between Velocity and PaperMC are not obvious. The
-      <code>player-info-forwarding-mode</code> in <code>velocity.toml</code> must be
-      <code>"modern"</code>. The <code>velocity.enabled</code> setting in
+      <code>player-info-forwarding-mode</code> in <code>velocity.toml</code> must be labeled as
+      <code>"modern"</code>. The <code>velocity.enabled</code> setting in the
       <code>paper-global.yml</code> must be <code>true</code>. The <code>online-mode</code>
-      in <code>server.properties</code> must be <code>false</code>. The forwarding secret
-      in both files must match exactly. Getting any one of these wrong causes Velocity to
-      silently drop connections with no useful error message. The fix was reading the actual
-      source code, not the documentation.
-      <br><br>
-      And it bit me for real later: one day the host started crashing with the CPU pinned, and
-      I traced it to a Minecraft node crash-looping 25 times in a row. The cause was a single pair
-      of quotes — <code>enabled: "true"</code> as a string instead of <code>enabled: true</code> as
-      a boolean. One character. Add the offline-mode auth pivot (the LXCs can't reach Mojang), a
-      player-UUID mismatch that made me think I'd nuked the world (I hadn't), and a Gitea runner
-      that fought me on <code>shutdown_timeout</code>, a Docker-vs-host executor mismatch, and
-      <code>actions/checkout</code> hanging with no internet — and that one afternoon was easily the
-      hardest part of the whole build. None of it was in the plan; all of it had to be read out of
-      logs one line at a time.
+      in <code>server.properties</code> must be <code>false</code> in contrary. The forwarding secret
+      in both files must of these wrong causes Velocity to
+      silently drop connections with no useful error to match exactly.
     </div>
-
-    <!-- PHOTO PLACEHOLDER — add your screenshot/photo here -->
-    <div data-viewer="../assets/img/meltdown.png" data-caption="ADD YOUR PHOTO HERE — e.g. the crash-loop logs, the 478% Grafana sys-load gauge, or the unknown-packet client error"></div>
+    
 
     <div class="divider"></div>
 
@@ -1233,6 +1253,7 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
       <span class="skill g">Write-Lock Failover</span>
       <span class="skill g">Shared World Storage</span>
       <span class="skill b">Systemd Service Design</span>
+      <span class="skill p">Trivy CVE Scanning</span>
     </div>
 
     <div class="divider"></div>
