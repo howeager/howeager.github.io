@@ -219,8 +219,8 @@ a:hover{ text-decoration:underline; color:var(--accent-green) }
   .toast{
     left:12px;
     right:12px;
-    top:max(12px, env(safe-area-inset-top));
-    bottom:auto;
+    bottom:max(12px, env(safe-area-inset-bottom));
+    top:auto;
     width:auto;
   }
   .viewer{

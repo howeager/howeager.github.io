@@ -1346,5 +1346,12 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
 </footer>
 
 <script src="../assets/js/viewer.js" defer></script>
+<script>
+  // When loaded inside the terminal's viewer iframe, hide the back-links
+  // (use the viewer's Close button instead of reloading the whole site here).
+  if (window.self !== window.top) {
+    document.querySelectorAll('.pill, .back').forEach(el => el.remove());
+  }
+</script>
 </body>
 </html>

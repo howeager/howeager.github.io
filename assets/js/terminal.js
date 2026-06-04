@@ -232,11 +232,10 @@
       }
     });
 
-    // open links in the viewer (touch devices navigate directly — easier on phones)
+    // open links in the viewer (works on touch devices too)
     document.addEventListener('click', (e)=>{
       const a = e.target.closest('a.blog-post');
       if(!a) return;
-      if(isCoarsePointer) return;
       e.preventDefault();
       const idx = Number(a.dataset.index ?? 0);
       const p = posts[idx];
@@ -257,15 +256,20 @@
       iframe.src = url;
       viewerContent.appendChild(iframe);
 
-      btnClose.onclick = closeViewer;
       viewer.classList.add('show');
       document.body.style.overflow = 'hidden';
     }
 
     function closeViewer(){
       viewer.classList.remove('show');
+      viewerContent.innerHTML = '';   // stop the iframe & release focus
       document.body.style.overflow = '';
     }
+
+    btnClose.addEventListener('click', closeViewer);
+    viewer.addEventListener('click', (e)=>{
+      if(e.target === viewer) closeViewer();   // tap the dark margin to close
+    });
 
     input.addEventListener('focus', ()=>{
       toast.classList.remove('show');
