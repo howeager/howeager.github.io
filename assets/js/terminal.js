@@ -143,9 +143,14 @@
       scrollToBottom();
     }
 
-    term.addEventListener('pointerdown', (e)=>{
-      if(e.target.closest('a, button, .viewer')) return;
-      if(e.target !== input) focusInput();
+    // Let the input get native focus on direct tap (required for the mobile
+    // keyboard to open). Only redirect taps that land on empty terminal area,
+    // and use click (fires after the browser's own focus handling).
+    term.addEventListener('click', (e)=>{
+      if(e.target === input) return;                       // native focus handles it
+      if(e.target.closest('a, button, .viewer')) return;   // don't steal these
+      input.focus({ preventScroll: true });
+      scrollPromptIntoView();
     });
 
     if(window.visualViewport){
