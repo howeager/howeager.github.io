@@ -1,61 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
-  <title>Terminal</title>
-  <link rel="stylesheet" href="assets/css/terminal.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Roberto Saldana's portfolio: systems security, blue-team operations, and hands-on infrastructure projects.">
+  <meta name="theme-color" content="#000080">
+  <title>Roberto Saldana — Systems &amp; Security</title>
+  <link rel="icon" href="assets/img/computer.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
-  <div class="toast" id="toast" role="status" aria-live="polite">
-    <div class="icon" aria-hidden="true">💡</div>
-    <div>
-      <div class="title">Terminal Hint</div>
-      <div class="msg">Tap the command line below, type <kbd>ls</kbd> for posts, then Enter. On mobile you can also tap post links after <kbd>ls</kbd>.</div>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="desktop-bar"><span><img src="assets/img/computer.svg" alt="" width="18" height="18"> Roberto Saldana — Portfolio Setup</span><span class="edition">16-bit edition</span></div>
+  <header class="masthead"><a href="index.html" aria-label="Roberto Saldana home">Roberto Saldana<span>Systems &amp; Security</span></a><p>A little old school.<br>A lot of hands-on.</p></header>
+  <main id="main" class="portfolio-window window">
+    <div class="title-bar"><span><img src="assets/img/computer.svg" alt="" width="20" height="20"> Roberto Saldana — Portfolio Setup</span><span class="window-mark" aria-hidden="true">▰</span></div>
+    <div class="window-layout">
+      <aside class="sidebar">
+        <div class="sidebar-heading"><span class="small-label">PORTFOLIO / PERSONAL EDITION</span><strong>Good systems.<br>Built with care.</strong></div>
+        <nav aria-label="Portfolio sections">
+          <a href="#welcome"><span>01</span> Welcome</a>
+          <a href="#work"><span>02</span> Selected work</a>
+          <a href="#about"><span>03</span> About me</a>
+          <a href="#contact"><span>04</span> Get in touch</a>
+        </nav>
+        <div class="sidebar-bottom"><img src="assets/img/computer.svg" width="74" height="74" alt=""><p>No installation required.<br>Just curiosity.</p><span>ROB SALDANA © 2026</span></div>
+      </aside>
+      <div class="content">
+        <section id="welcome" class="welcome">
+          <div class="eyebrow"><span class="square" aria-hidden="true"></span> WELCOME TO MY CORNER OF THE INTERNET</div>
+          <h1>I build systems.<br>Then I make them<br><em>harder to break.</em></h1>
+          <p class="intro">I’m Roberto, a Computer Information Systems student at Cal Poly Pomona. I turn curiosity into working infrastructure, with security built in from the start.</p>
+          <div class="actions"><a class="button primary" href="#work">Explore my work <span aria-hidden="true">→</span></a><a class="button" href="https://github.com/howeager" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a></div>
+          <div class="system-info"><span>Systems security</span><span>Blue-team operations</span><span>Hands-on infrastructure</span></div>
+        </section>
+        <section id="work" class="section-block">
+          <div class="section-heading"><h2><span>02 /</span> Selected work</h2><span class="small-label">BUILT, TESTED, DOCUMENTED</span></div>
+          <a class="project" href="pages/minecraft-server.html">
+            <div class="project-art" aria-hidden="true"><div class="server-diagram"><div class="server"><i></i><i></i><i></i><span>HOMELAB</span></div><div class="connection"></div><div class="diagram-nodes"><span>BUILD</span><span>SECURE</span><span>OBSERVE</span></div></div><span class="art-caption">FROM A $70 MACHINE TO A FULL STACK</span></div>
+            <div class="project-details"><div class="project-meta">CASE STUDY <span>MAY 2026</span></div><h3>A Minecraft server.<br>An infrastructure deep dive.</h3><p>A bet with friends became a DevSecOps homelab: automated deployments, failover, backups, and observability on a budget.</p><div class="tags"><span>DevSecOps</span><span>Homelab</span><span>Infrastructure</span></div><span class="project-link">Read the case study <span aria-hidden="true">↗</span></span></div>
+          </a>
+          <a class="text-link" href="https://github.com/howeager" target="_blank" rel="noopener noreferrer">More of what I’m building on GitHub <span aria-hidden="true">↗</span></a>
+        </section>
+        <section id="about" class="section-block">
+          <div class="section-heading"><h2><span>03 /</span> The person behind the projects</h2></div>
+          <div class="about-grid"><div><p>I like understanding how things work by building them myself. My focus is systems security, security operations, and the tools that help defenders keep things running.</p><p>Outside of infrastructure, I enjoy making things with my own two hands and editing goofy videos when I can find the time.</p></div><dl class="profile"><div><dt>Education</dt><dd>Computer Information Systems<br>Cal Poly Pomona</dd></div><div><dt>Competition</dt><dd>CCDC competitor</dd></div><div><dt>Community</dt><dd>Treasurer<br>Security Operations Club</dd></div></dl></div>
+        </section>
+        <section id="contact" class="section-block contact">
+          <div class="section-heading"><h2><span>04 /</span> Let’s connect</h2><span aria-hidden="true">✉</span></div>
+          <p>Have a question about a project or something interesting to build? I’d love to hear about it.</p>
+          <a class="email" href="mailto:robsal03@outlook.com">robsal03@outlook.com <span aria-hidden="true">↗</span></a>
+          <div class="contact-links"><a href="https://github.com/howeager" target="_blank" rel="noopener noreferrer">GitHub ↗</a><a href="https://www.linkedin.com/in/rob-saldana/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a><a href="#welcome">Back to top ↑</a></div>
+        </section>
+        <footer class="window-footer"><span><span class="status-dot" aria-hidden="true"></span> Ready to explore.</span><span>Made for the web. Inspired by 1994.</span></footer>
+      </div>
     </div>
-    <button class="x" id="toastClose" aria-label="Close notification">✕</button>
-  </div>
-
-  <section class="viewer" id="viewer" aria-modal="true" role="dialog" aria-label="File viewer">
-    <header class="viewer-header">
-      <div class="window-buttons" aria-hidden="true">
-        <span class="btn close"></span>
-        <span class="btn min"></span>
-        <span class="btn max"></span>
-      </div>
-      <span class="viewer-title" id="viewerTitle">Opening…</span>
-      <div class="viewer-actions">
-        <button id="btnClose">Close</button>
-      </div>
-    </header>
-    <div class="viewer-body">
-      <div class="viewer-content" id="viewerContent"></div>
-    </div>
-  </section>
-
-  <main class="terminal" aria-label="Terminal portfolio">
-    <header class="terminal-header" aria-hidden="true">
-      <div class="window-buttons">
-        <span class="btn close"></span>
-        <span class="btn min"></span>
-        <span class="btn max"></span>
-      </div>
-      <span class="title">roberto@cal-poly-pomona: ~</span>
-    </header>
-
-    <section class="terminal-body" id="terminal" role="log" aria-live="polite">
-      <div class="line"><span class="user">roberto@cal-poly-pomona</span>:<span class="path">~</span>$ <span class="command">cat welcome.txt</span></div>
-      <div class="output" id="output" aria-label="Command output"></div>
-
-      <div class="prompt" id="prompt">
-        <span class="ps1"><span class="user">roberto@cal-poly-pomona</span>:<span class="path">~</span>$</span>
-        <input id="input" name="command" type="text" inputmode="text" enterkeyhint="go"
-               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-               aria-label="Command line" placeholder="Tap here, type a command, Enter…" />
-      </div>
-    </section>
   </main>
-
-  <script src="assets/js/terminal.js"></script>
+  <footer class="desktop-footer"><span>© 2026 Roberto Saldana</span><span>Classic interface. Current curiosity.</span></footer>
 </body>
 </html>

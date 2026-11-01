@@ -4,12 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>Building a Production-Grade Minecraft Server Nobody Asked For – Roberto Saldana</title>
+  <meta name="description" content="A hands-on DevSecOps homelab case study: building a resilient Minecraft server with automated deployments, failover, backups, and observability.">
+  <meta name="theme-color" content="#000080">
+  <link rel="icon" href="../assets/img/computer.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../assets/css/blog.css">
 </head>
 <body>
 
 <header>
-  <a href="../index.html" class="pill">← Back to Terminal</a>
+  <a href="../index.html" class="pill">← Back to portfolio</a>
 </header>
 
 <main>
@@ -59,8 +62,8 @@
     <h2 id="intro"><span class="num">01 —</span> Introduction</h2>
 
     <p>
-      Minecraft everyones favorite game. It's so easy to just boot up a server, share your IP with your friends,
-      and play for hours until you pass out of exhoaustion. Or until one of your friends griefs the entire world and it suddenly
+      Minecraft, everyone’s favorite game. It's so easy to just boot up a server, share your IP with your friends,
+      and play for hours until you pass out of exhaustion. Or until one of your friends griefs the entire world and it suddenly
       turns into an unplanned anarchy server and everything crashes and burns. I love this game.
     </p>
 
@@ -134,7 +137,7 @@
       </b>
        </p>
       I had just committed to building a production-grade server from scratch, on a budget,
-       with a deadline, and for a group of friends who were indoublty going to troll me when we play. Yeah this is going to be worth it.
+       with a deadline, and for a group of friends who were undoubtedly going to troll me when we play. Yeah this is going to be worth it.
     </p>
 
     <p>
@@ -153,7 +156,7 @@
      What hardware will host my minecraft server??? I didn't really have a lot of criteria, I just needed something that
      was cheaper than that Hostinger subscription and worked. I scoured through different sites trying to find the best
      hardware for my project. What I ended up choosing was a simple <strong>HP EliteDesk 705 G3 Mini</strong>. 
-     I was hosting my whole infra on thislittle corporate desktop I bought off eBay for only a measly seventy dollars.
+     I was hosting my whole infra on this little corporate desktop I bought off eBay for only a measly seventy dollars.
       That was definitely less than what my friends were about to spend on a single year 
      of Hostinger.
     </p>
@@ -182,7 +185,7 @@
     <h2 id="methodology"><span class="num">03 —</span> DevSecOps Methodology</h2>
 
     <p>
-      Lets get into the planning! I could theoritcally build this server by just installing a .jar minecraft server, give out the servers public ip to my friends,
+      Lets get into the planning! I could theoretically build this server by just installing a .jar minecraft server, give out the servers public ip to my friends,
       hope I don't get attack through my exposed ports and wish for the best but that just seemed too easy
       (and unsafe). Here's where I made a decision that turned a weekend project into something
       that was actually worth being proud of.
@@ -206,7 +209,7 @@
     <p>These are the key principles that I carried into this build directly from the DOD framework:</p>
 
     <ul>
-      <li><strong>Zero Trust Architecture</strong> — surface levelsecurity alone is not enough (especially with my friends), when giving access we must verify at every layer</li>
+      <li><strong>Zero Trust Architecture</strong> — surface level security alone is not enough (especially with my friends), when giving access we must verify at every layer</li>
       <li><strong>SIEM/logging enabled</strong> implementing a SIEM is a must, I'm using Grafana/Loki for this project</li>
       <li><strong>Runtime defense</strong> and vulnerability management as baseline REQUIRED capabilities, in this case I am using Trivy to scan the containers for vulnerabilities</li>
       <li><strong>Infrastructure as Code</strong> for reproducible, auditable, version-controlled deployments, I am using Ansible to provision the servers</li>
@@ -460,7 +463,7 @@
     <p>
       Below I have provided a network diagram.
       The main thing that should pass by anyones head is that there are exactly only two kinds of people who can touch 
-      this network (theoritcally of course), and they get the keys to different doors. 
+      this network (theoretically of course), and they get the keys to different doors.
 </p>
 <p>
       I obviously assigned myself as admin giving myself the rights to access the whole entire network such as:
@@ -920,7 +923,7 @@ done</code></pre>
       host reboots. The full failover cycle  from minecraft-1 dying to minecraft-2 being
       live with write access takes approximately 30-40 seconds including the startup wait.
       The handback cycle from minecraft-1 recovering to reclaiming the lock takes approximately
-      40 seconds. So in the aspect of availabilty we are on the right track!
+      40 seconds. So in the aspect of availability we are on the right track!
     </p>
 
     <div class="callout success">
@@ -1185,7 +1188,7 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
 
     <h3>Unprivileged Service Accounts</h3>
     <p>
-      Every service this includesMinecraft, Velocity, Gitea, Vault, Prometheus, Grafana, Loki, and Promtail each
+      Every service this includes Minecraft, Velocity, Gitea, Vault, Prometheus, Grafana, Loki, and Promtail each
       runs as a dedicated non-root system user created with <code>useradd -r</code>. The systemd
       <code>User=</code> directive drops privileges before the process starts. If any service
       is exploited, the attacker is limited to that user's permissions with no path to root
@@ -1329,29 +1332,22 @@ SECRET=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
       GitHub: <a href="https://github.com/howeager" target="_blank" rel="noopener">github.com/howeager</a>
       </p>
       <p>
-      Linkedin: <a href="https://www.linkedin.com/in/rob-saldana/" target="_blank" rel="noopener">linkedin.com/in/rob-saldana/</a>
+      LinkedIn: <a href="https://www.linkedin.com/in/rob-saldana/" target="_blank" rel="noopener">linkedin.com/in/rob-saldana/</a>
       </p>
     
     </div>
 
   </article>
 
-  <a href="../index.html" class="back">← Back to Terminal</a>
+  <a href="../index.html" class="back">← Back to portfolio</a>
 
 </main>
 
 <footer>
   <p>Written by Roberto Saldana · <a href="https://github.com/howeager" target="_blank" rel="noopener">howeager</a> · May 2026</p>
-  <p style="margin-top:0.4rem;font-size:0.7rem;">Built with an $70 homelab and some costco energy drinks.</p>
+  <p style="margin-top:0.4rem;font-size:0.7rem;">Built with a $70 homelab and some Costco energy drinks.</p>
 </footer>
 
 <script src="../assets/js/viewer.js" defer></script>
-<script>
-  // When loaded inside the terminal's viewer iframe, hide the back-links
-  // (use the viewer's Close button instead of reloading the whole site here).
-  if (window.self !== window.top) {
-    document.querySelectorAll('.pill, .back').forEach(el => el.remove());
-  }
-</script>
 </body>
 </html>
